@@ -1,6 +1,6 @@
-from data.repository import DataRepository
-from analysis import StatisticalAnalyzer
-from models.registry import ModelRegistry
+from .data.repository import DataRepository
+from .analysis import StatAnalyzer
+from .models.registry import ModelRegistry
 
 class AppService():
     """
@@ -11,6 +11,6 @@ class AppService():
     
     def __init__(self):
         self.__repository:DataRepository = None
-        self.__analyzer:StatisticalAnalyzer = None
+        self.__analyzer:StatAnalyzer = None
         self.__registry:ModelRegistry = None
         pass

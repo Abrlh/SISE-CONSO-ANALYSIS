@@ -1,8 +1,146 @@
-from .api_client import AdempiereClient
-from ..storage import Storage
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+import pandas as pd
+from .api_client import AdemeApiClient
+from ..storage import LocalStorage, Storage
 
 class DataRepository():
+    NB_DEPARTEMENTS = 3
+    # Format de l'id d'un snapshot : date et heure UTC du téléchargement, ex. "2026-10-08_143000".
+    # Largeur fixe : l'ordre alphabétique des id est aussi l'ordre chronologique.
+    SNAPSHOT_ID_FORMAT = "%Y-%m-%d_%H%M%S"
+
     def __init__(self):
-        self.__client:AdempiereClient = None
-        self.__storage:Storage = None
+        self.__client:AdemeApiClient = AdemeApiClient()
+        self.__root = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
+        self.__storage:Storage = LocalStorage(root=self.__root)
+        # Données prétraitées : data/processed/<snapshot_id>/<departement>.parquet + meta.json
+        self.__processed_root = self.__root.parent / "processed"
+        self.__processed_storage:Storage = LocalStorage(root=self.__processed_root)
+        self.__departements = self.__get_departements()
         pass
+
+
+    def __get_departements(self)-> list:
+        d = list()
+        with open(Path(__file__).resolve().parent.parent.parent / "data" /"raw"/ "codes_departements_nb_lignes.csv") as f:
+            for i in range(self.NB_DEPARTEMENTS+1):
+                line = f.readline()
+                if line == "": raise ValueError(f"Le fichier codes_departements_nb_lignes.csv ne contient pas assez de lignes. Attendu: {self.NB_DEPARTEMENTS+1}, trouvé: {i}")
+                code, nb_lignes = line.strip().split(",")
+                if i == 0:continue  # skip header
+                d.append(code)
+
+        return d
+
+
+    def refresh(self,size:int=10)-> str:
+        """Télécharge les données de chaque département dans un nouveau snapshot.
+
+        Arborescence créée :
+            data/raw/<snapshot_id>/<departement>/<nom_dataset>.parquet
+            data/raw/<snapshot_id>/meta.json
+
+        meta.json est écrit en dernier : s'il est absent, le téléchargement
+        a été interrompu et le snapshot est ignoré par list_snapshots().
+
+        Returns:
+            id du snapshot créé, ex. "2026-10-08_143000"
+        """
+        # Un seul id pour tout le téléchargement, généré avant la boucle
+        snapshot_id = datetime.now(timezone.utc).strftime(self.SNAPSHOT_ID_FORMAT)
+        contenu = {}  # {departement: [noms des datasets]}
+        print("== Téléchargement des données ADEME ==")
+        for departement in self.__departements:
+            datasets = self.__client.get_full_datasets(code_departement=departement,size=size)
+            for name, df in datasets.items():
+                self.__storage.save(df, path=f"{snapshot_id}/{departement}/{name}.parquet")
+            contenu[departement] = list(datasets.keys())
+
+        # TODO: ajouter dataUpdatedAt quand AdemeApiClient saura le lire
+        meta = {"snapshot_id": snapshot_id, "departements": contenu}
+        snapshot_dir = self.__root / snapshot_id
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        (snapshot_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+        return snapshot_id
+
+
+    def list_snapshots(self)-> list[str]:
+        """Renvoie les id des snapshots complets, du plus ancien au plus récent.
+
+        Seuls les dossiers contenant meta.json sont retenus.
+        """
+        return sorted(p.name for p in self.__root.iterdir() if (p / "meta.json").exists())
+
+
+    def latest_snapshot(self)-> str:
+        """Renvoie l'id du snapshot complet le plus récent.
+
+        Raises:
+            FileNotFoundError: aucun snapshot complet dans data/raw
+        """
+        snapshots = self.list_snapshots()
+        if not snapshots:
+            raise FileNotFoundError("Aucun snapshot complet dans data/raw. Lancez d'abord : python -m src.refresh")
+        return snapshots[-1]
+
+
+    def load(self, snapshot_id:str)-> dict[str, pd.DataFrame]:
+        """Recharge un snapshot.
+
+        Args:
+            snapshot_id: id du snapshot, ex. "2026-10-08_143000"
+
+        Returns:
+            {departement: [{dataset_name: DataFrame}]}, les datasets étant séparés par département
+        """
+        meta = json.loads((self.__root / snapshot_id / "meta.json").read_text())
+        frames = {}  # {nom_dataset: [DataFrame de chaque département]}
+        for departement, names in meta["departements"].items():
+            frames[departement] = {}
+            for name in names:
+                df = self.__storage.load(path=f"{snapshot_id}/{departement}/{name}.parquet")
+                frames[departement][name] = df
+        return frames
+
+    def save_processed(self, snapshot_id:str, data:dict[str, pd.DataFrame])-> None:
+        """Enregistre les données prétraitées d'un snapshot.
+
+        Arborescence créée :
+            data/processed/<snapshot_id>/<departement>.parquet
+            data/processed/<snapshot_id>/meta.json
+
+        meta.json est supprimé avant l'écriture et réécrit en dernier : si l'écriture
+        est interrompue, le dossier est considéré comme absent par load_processed().
+
+        Args:
+            snapshot_id: id du snapshot brut dont proviennent les données
+            data: {departement: DataFrame}
+        """
+
+        
+
+        processed_dir = self.__processed_root / snapshot_id
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        (processed_dir / "meta.json").unlink(missing_ok=True)
+        for departement, df in data.items():
+            self.__processed_storage.save(df, path=f"{snapshot_id}/{departement}.parquet")
+        meta = {"snapshot_id": snapshot_id, "departements": list(data)}
+        (processed_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+
+    def load_processed(self, snapshot_id:str)-> dict[str, pd.DataFrame]:
+        """Recharge les données prétraitées d'un snapshot.
+
+        Returns:
+            {departement: DataFrame}
+
+        Raises:
+            FileNotFoundError: pas de données prétraitées complètes pour ce snapshot
+        """
+        meta_path = self.__processed_root / snapshot_id / "meta.json"
+        if not meta_path.exists():
+            raise FileNotFoundError(f"Pas de données prétraitées pour le snapshot {snapshot_id}. Lancez : python -m src.train --preprocess")
+        departements = json.loads(meta_path.read_text())["departements"]
+        return {d: self.__processed_storage.load(path=f"{snapshot_id}/{d}.parquet") for d in departements}

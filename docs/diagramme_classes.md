@@ -34,8 +34,10 @@ Application Streamlit dockerisée d'analyse des DPE (API ADEME) : récupération
 ## Flux
 
 ```
-[1] Rafraîchir   python -m src.refresh   API ADEME -> data/raw/<date>.parquet
+[1] Rafraîchir   python -m src.refresh   API ADEME -> data/raw/<snapshot_id>/   (facultatif, voir [2])
 [2] Entraîner    python -m src.train     snapshot -> prétraitement -> models/<version>/   (manuel, annuel)
+                 Réutilise le dernier snapshot, télécharge seulement s'il n'y en a aucun.
+                 --refresh : télécharge un nouveau snapshot   --snapshot <id> : utilise ce snapshot
 [3] Servir       streamlit run app/main.py   dernier snapshot + dernier modèle, lecture seule
 ```
 
