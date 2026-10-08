@@ -61,13 +61,13 @@ class TrainingPipeline():
         if refresh:
             print(f"    - actualisation du snapshot {snapid} ===")
             # -- refresh
-            snapid = self.__repository.refresh(size=10)
+            snapid = self.__repository.refresh(size=10000)
         elif snapid is None:
             if not self.__repository.list_snapshots():
                 #  en gros data/raw est vide, on télécharge un snapshot
                 
                 print(f"    - Étape 0 : téléchargement d'un snapshot ===")
-                self.__repository.refresh(size=10)
+                self.__repository.refresh(size=10000)
             
             print(f"    - on récupère le dernier snapshot enregistré: {snapid}  ")
             snapid = self.__repository.latest_snapshot()

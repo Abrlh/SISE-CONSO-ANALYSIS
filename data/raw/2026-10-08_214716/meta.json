@@ -1,0 +1,17 @@
+{
+  "snapshot_id": "2026-10-08_214716",
+  "departements": {
+    "75": [
+      "dpe_existants",
+      "dpe_neufs"
+    ],
+    "59": [
+      "dpe_existants",
+      "dpe_neufs"
+    ],
+    "69": [
+      "dpe_existants",
+      "dpe_neufs"
+    ]
+  }
+}

@@ -35,7 +35,7 @@ class DataRepository():
         return d
 
 
-    def refresh(self,size:int=10)-> str:
+    def refresh(self,size:int=10000)-> str:
         """Télécharge les données de chaque département dans un nouveau snapshot.
 
         Arborescence créée :
@@ -53,12 +53,15 @@ class DataRepository():
         contenu = {}  # {departement: [noms des datasets]}
         print("== Téléchargement des données ADEME ==")
         for departement in self.__departements:
+            tps_debut = datetime.now() #TODO: delete ça
+            print(f"    - Département {departement} ===")
             datasets = self.__client.get_full_datasets(code_departement=departement,size=size)
             for name, df in datasets.items():
                 self.__storage.save(df, path=f"{snapshot_id}/{departement}/{name}.parquet")
             contenu[departement] = list(datasets.keys())
+            tps_fin = datetime.now() #TODO: delete ça 
+            print(f"      -> {len(datasets)} datasets téléchargés en {tps_fin - tps_debut}")
 
-        # TODO: ajouter dataUpdatedAt quand AdemeApiClient saura le lire
         meta = {"snapshot_id": snapshot_id, "departements": contenu}
         snapshot_dir = self.__root / snapshot_id
         snapshot_dir.mkdir(parents=True, exist_ok=True)
