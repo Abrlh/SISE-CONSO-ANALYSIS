@@ -35,7 +35,7 @@ class DataRepository():
         return d
 
 
-    def refresh(self,size:int=10000)-> str:
+    def refresh(self,size:int=10000,nb_page:int=10)-> str:
         """Télécharge les données de chaque département dans un nouveau snapshot.
 
         Arborescence créée :
@@ -44,6 +44,10 @@ class DataRepository():
 
         meta.json est écrit en dernier : s'il est absent, le téléchargement
         a été interrompu et le snapshot est ignoré par list_snapshots().
+
+        Args:
+            size: taille de page pour la requête
+            nb_page: nombre maximum de pages à récupérer par dataset
 
         Returns:
             id du snapshot créé, ex. "2026-10-08_143000"
@@ -55,7 +59,7 @@ class DataRepository():
         for departement in self.__departements:
             tps_debut = datetime.now() #TODO: delete ça
             print(f"    - Département {departement} ===")
-            datasets = self.__client.get_full_datasets(code_departement=departement,size=size)
+            datasets = self.__client.get_full_datasets(code_departement=departement,size=size,nb_page=nb_page)
             for name, df in datasets.items():
                 self.__storage.save(df, path=f"{snapshot_id}/{departement}/{name}.parquet")
             contenu[departement] = list(datasets.keys())

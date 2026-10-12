@@ -69,8 +69,8 @@ class TrainingPipeline():
                 print(f"    - Étape 0 : téléchargement d'un snapshot ===")
                 self.__repository.refresh(size=10000)
             
-            print(f"    - on récupère le dernier snapshot enregistré: {snapid}  ")
             snapid = self.__repository.latest_snapshot()
+            print(f"    - on récupère le dernier snapshot enregistré: {snapid}  ")
         return snapid
 
 
