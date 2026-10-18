@@ -9,6 +9,7 @@ Prétraitement des DPE (logements neufs et existants).
 Les décisions et leurs justifications sont documentées dans
 notebooks/02_nettoyage_donnees.ipynb et docs/colonnes_retenues.csv.
 """
+import warnings
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ COLONNES_GARDEES = [
 # ---------------------------------------------------------------------------
 # Seuils (justifiés dans le notebook)
 # ---------------------------------------------------------------------------
-SURFACE_MIN, SURFACE_MAX = 9, 500          # m² : en dessous, pas un logement ; au-dessus, erreurs
+SURFACE_MIN, SURFACE_MAX = 5, 500          # m² : en dessous, pas un logement ; au-dessus, erreurs
 CONSO_MAX = 1000                           # kWh/m²/an
 GES_MAX = 1000                             # kg CO2/m²/an (les erreurs de Lyon dépassent 5 900)
 HAUTEUR_MIN, HAUTEUR_MAX = 1.8, 5          # m ; hors de cette plage : unité erronée probable
@@ -146,9 +147,20 @@ def harmoniser_categories(df):
             df[col] = df[col].astype("string").str.strip()
     df["type_energie_principale_chauffage"] = (
         df["type_energie_principale_chauffage"].map(regrouper_energie))
-    for col in ["type_installation_chauffage", "type_installation_ecs"]:
+    for col in ["type_installation_chauffage", "type_installation_ecs", "qualite_isolation_plancher_bas"]:
         df[col] = df[col].fillna("non applicable")
     return df
+
+
+def supprimer_manquants_restants(df):
+    """Filet de sécurité : supprime les lignes qui ont encore une valeur manquante
+    (latitude, longitude, hauteur, ou une colonne imprévue d'un futur scrape).
+    Une colonne entièrement vide est laissée telle quelle, avec un avertissement,
+    sinon toutes les lignes seraient supprimées."""
+    vides = [c for c in df.columns if df[c].isna().all()]
+    if vides:
+        warnings.warn(f"Colonnes entièrement vides (ignorées par le filet) : {vides}")
+    return df.dropna(subset=[c for c in df.columns if c not in vides])
 
 
 def nettoyer(df, bilan=None):
@@ -174,6 +186,7 @@ def nettoyer(df, bilan=None):
     df = etape(extraire_coordonnees(df), "Coordonnées extraites")
     df = etape(nettoyer_hauteur(df), "Hauteur sous plafond")
     df = etape(harmoniser_categories(df), "Catégories harmonisées")
+    df = etape(supprimer_manquants_restants(df), "Manquants restants supprimés")
     return df.reset_index(drop=True)
 
 
