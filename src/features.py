@@ -186,3 +186,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+if __name__ == "__main__":
+    # On passe par l'import du module : lancé avec `python -m src.features`, ce fichier
+    from src.features import main as _main
+    _main()
