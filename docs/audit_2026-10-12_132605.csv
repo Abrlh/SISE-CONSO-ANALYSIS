@@ -1,0 +1,10 @@
+colonne,type,pct_manquant,valeurs_distinctes,exemple,corr_cible,suggestion
+conso_ef_generateur_n2_ecs_n1,numérique,100.0,3,min=0 médiane=0 max=1.82e+05,,ÉCARTER : famille qui contient la réponse (fuite)
+date_installation_generateur_n2_ecs_n1,texte/catégorie,100.0,1,Avant 2010 (5),,"ÉCARTER : identifiant, adresse, date ou texte libre"
+description_generateur_n2_ecs_n1,texte/catégorie,100.0,3,GUILLOT OPTIMAGAZ (2); Chaudière gaz basse température 430 kW (1); Chaudière gaz basse température  740 kW (1),,"ÉCARTER : identifiant, adresse, date ou texte libre"
+facteur_couverture_solaire_installation_chauffage_n2,numérique,100.0,2,min=0.3 médiane=0.4 max=0.5,,ÉCARTER : trop vide (> 60 %)
+facteur_couverture_solaire_saisi_installation_chauffage_n2,numérique,100.0,1,min=0.5 médiane=0.5 max=0.5,,ÉCARTER : trop vide (> 60 %)
+type_energie_generateur_n2_ecs_n1,texte/catégorie,100.0,2,Gaz naturel (5); GPL (4),,ÉCARTER : trop vide (> 60 %)
+type_generateur_n2_ecs_n1,texte/catégorie,100.0,3,Chaudière gpl/propane/butane standard 1991-2000 (4); Chaudière gaz standard 2001-2015 (3); Chaudière gaz basse température 2001-2015 (2),,ÉCARTER : trop vide (> 60 %)
+usage_generateur_n2_ecs_n1,texte/catégorie,100.0,1,chauffage + ecs (9),,ÉCARTER : trop vide (> 60 %)
+volume_stockage_generateur_n2_ecs_n1,numérique,100.0,4,min=0 médiane=200 max=750,,ÉCARTER : trop vide (> 60 %)
