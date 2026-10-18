@@ -62,9 +62,9 @@ ORDRE_PERIODE = ["avant 1948", "1948-1974", "1975-1977", "1978-1982", "1983-1988
 ORDRE_ISOLATION = ["insuffisante", "moyenne", "bonne", "très bonne"]
 
 
-# ---------------------------------------------------------------------------
+
 # Règles de nettoyage : une fonction par règle, DataFrame en entrée et en sortie
-# ---------------------------------------------------------------------------
+
 def garder_colonnes(df):
     """Ne garde que les colonnes utiles à l'application (liste blanche)."""
     return df[[c for c in COLONNES_GARDEES if c in df.columns]].copy()
@@ -190,9 +190,9 @@ def nettoyer(df, bilan=None):
     return df.reset_index(drop=True)
 
 
-# ---------------------------------------------------------------------------
+
 # Classe utilisée par le reste du projet (interface inchangée)
-# ---------------------------------------------------------------------------
+
 class DataPreprocessor():
     """
     Preprocesses the data for analysis and modeling.
