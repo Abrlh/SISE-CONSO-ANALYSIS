@@ -100,6 +100,9 @@ def preparer(df, test_size=0.2, seed=42, chemin_sauvegarde=None):
         return pd.DataFrame(prep.transform(x), columns=noms, index=x.index)
 
     jeu = {"X_train": tr(X_tr), "X_test": tr(X_te),
+           # mêmes lignes, avant encodage : pour construire un Pipeline complet
+           # (préprocesseur + estimateur) qui accepte directement la saisie brute
+           "X_train_brut": X_tr.reset_index(drop=True), "X_test_brut": X_te.reset_index(drop=True),
            "y_train_classe": yc_tr, "y_test_classe": yc_te,
            "y_train_conso": yr_tr, "y_test_conso": yr_te,
            "preprocesseur": prep, "colonnes": noms,
@@ -138,7 +141,7 @@ def ecrire_jeu(jeu, dossier, snapshot, fmt="parquet"):
     Les lignes de X_train et y_train_* sont alignées par leur ORDRE (même numéro de ligne)."""
     dossier = Path(dossier)
     dossier.mkdir(parents=True, exist_ok=True)
-    for nom in ["X_train", "X_test"]:
+    for nom in ["X_train", "X_test", "X_train_brut", "X_test_brut"]:
         _ecrire(jeu[nom].reset_index(drop=True), dossier / nom, fmt)
     for nom in ["y_train_classe", "y_test_classe", "y_train_conso", "y_test_conso", "origine_test"]:
         _ecrire(jeu[nom].reset_index(drop=True).to_frame(), dossier / nom, fmt)
@@ -160,7 +163,7 @@ def charger_jeu(snapshot=None, fmt="parquet", racine=DOSSIER_PRET):
         snapshot = existants[-1]
     dossier = racine / snapshot
     jeu = {}
-    for nom in ["X_train", "X_test"]:
+    for nom in ["X_train", "X_test", "X_train_brut", "X_test_brut"]:
         jeu[nom] = _lire(dossier / nom, fmt)
     for nom in ["y_train_classe", "y_test_classe", "y_train_conso", "y_test_conso", "origine_test"]:
         jeu[nom] = _lire(dossier / nom, fmt).iloc[:, 0]
@@ -169,24 +172,34 @@ def charger_jeu(snapshot=None, fmt="parquet", racine=DOSSIER_PRET):
     return jeu
 
 
-def main():
+def generer_jeu(snapshot=None, fmt="parquet"):
+    """Lit data/processed/<snapshot>/ (tous les départements), prépare le jeu et l'écrit
+    dans data/ready/<snapshot>/. Sans snapshot : le plus récent. Renvoie (snapshot, jeu).
+    Le nettoyage (étape preprocess) doit avoir été fait avant."""
     from .data.repository import DataRepository
-    p = argparse.ArgumentParser(description="Écrit le jeu train/test encodé dans data/ready/<snapshot>/.")
-    p.add_argument("--snapshot", help="id du snapshot (défaut : le plus récent)")
-    args = p.parse_args()
     repo = DataRepository()
-    snap = args.snapshot or repo.latest_snapshot()
+    snap = snapshot or repo.latest_snapshot()
     df = pd.concat(repo.load_processed(snap).values(), ignore_index=True)
     jeu = preparer(df)
-    ecrire_jeu(jeu, DOSSIER_PRET / snap, snap)
+    ecrire_jeu(jeu, DOSSIER_PRET / snap, snap, fmt=fmt)
     print(f"Snapshot {snap} : {len(jeu['X_train'])} lignes d'entraînement, "
           f"{len(jeu['X_test'])} de test, {len(jeu['colonnes'])} colonnes.")
     print(f"Écrit dans : {DOSSIER_PRET / snap}")
+    return snap, jeu
 
 
-if __name__ == "__main__":
-    main()
+def main():
+    p = argparse.ArgumentParser(description="Écrit le jeu train/test encodé dans data/ready/<snapshot>/.")
+    p.add_argument("--snapshot", help="id du snapshot (défaut : le plus récent)")
+    p.add_argument("--format", default="parquet", choices=["parquet", "csv"],
+                   help="format des fichiers écrits (défaut : parquet)")
+    args = p.parse_args()
+    generer_jeu(args.snapshot, fmt=args.format)
+
+
 if __name__ == "__main__":
     # On passe par l'import du module : lancé avec `python -m src.features`, ce fichier
+    # s'appelle "__main__", et joblib y enregistrerait les fonctions du préprocesseur sous
+    # ce nom, introuvable à la relecture. Importé, elles sont enregistrées sous src.features.
     from src.features import main as _main
     _main()

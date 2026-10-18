@@ -1,6 +1,6 @@
 {
   "snapshot": "2026-10-12_132605",
-  "cree_le": "2026-10-18T16:11:11",
+  "cree_le": "2026-10-18T18:15:41",
   "format": "parquet",
   "lignes_train": 309160,
   "lignes_test": 77290,
