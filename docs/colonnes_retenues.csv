@@ -223,3 +223,12 @@ ventilation_posterieure_2012,Quasi constante,supprimée,96 % à 99 % de 0,0.0,0.
 version_dpe,Redondante,supprimée,reflète la date de réception ; inconnue du particulier,0.0,0.0
 volume_stockage_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
 zone_climatique,Redondante,supprimée,manquantes à 45-71 % chez les neufs ; le département porte l'information,1.0,71.0
+conso_ef_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+date_installation_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+description_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+facteur_couverture_solaire_installation_chauffage_n2,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+facteur_couverture_solaire_saisi_installation_chauffage_n2,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+type_energie_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+type_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+usage_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+volume_stockage_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
