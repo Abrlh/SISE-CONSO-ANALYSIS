@@ -17,7 +17,7 @@ data/raw/<snapshot>/        données brutes de l'API (224 colonnes, telles que r
         │   nettoyage  (src/preprocessing.py)
         ▼
 data/processed/<snapshot>/  données propres et lisibles, 31 colonnes, un fichier par département   ← ANALYSE
-        │   encodage   (src/features.py)
+        │   encodage   (src/features.py, étape --features de train.py)
         ▼
 data/ready/<snapshot>/      données chiffrées, découpées en entraînement / test                    ← MODÈLES
 ```
@@ -53,7 +53,7 @@ jeu = charger_jeu()        # prend le snapshot le plus récent de data/ready/
 ```
 
 - Classification (étiquette DPE de A à G) : `jeu["X_train"]`, `jeu["y_train_classe"]` pour entraîner ; `jeu["X_test"]`, `jeu["y_test_classe"]` pour évaluer.
-- Régression (consommation en kWh/m²/an) : `jeu["y_train_conso"]` et `jeu["y_test_conso"]`.
+- Régression (consommation en kWh/m²/an) : `jeu["X_train"]`,`jeu["y_train_conso"]` pour l'entraînement et `jeu["X_test"]`, `jeu["y_test_conso"]` pour évaluer.
 - `jeu["X_train_brut"]` et `jeu["X_test_brut"]` sont les **mêmes logements avant encodage** (12 colonnes lisibles) : à utiliser pour construire le modèle final (voir section 5).
 - `jeu["origine_test"]` dit si chaque logement de test est « dpe_existants » ou « dpe_neufs » : utile pour évaluer le modèle sur les existants seuls (les neufs sont presque tous en A, B ou C).
 - `jeu["preprocesseur"]` est la « recette » de transformation (voir plus bas) : l'application l'utilisera pour transformer la saisie d'un utilisateur de la même manière.
@@ -76,10 +76,13 @@ jeu = charger_jeu()        # prend le snapshot le plus récent de data/ready/
 Soit 2 + 4 + 24 = 30. Dans `X_train`, les noms de colonnes portent un préfixe qui indique le traitement (`num__`, `ord__`, `nom__`).
 Les lignes de `X_*`, `X_*_brut` et `y_*` sont **alignées par leur ordre** : la ligne n de chaque fichier décrit le même logement.
 
-**Lequel choisir ?** `X_train` / `X_test` pour comparer rapidement des modèles ; `X_train_brut` / `X_test_brut` pour le modèle final, enregistré sous forme de pipeline complet (section 5).
+**Lequel choisir ?**
+- `X_train` / `X_test` (30 colonnes, déjà en nombres) : pour **tester et comparer des modèles rapidement**.
+- `X_train_brut` / `X_test_brut` (12 colonnes lisibles) : pour **entraîner le modèle final** qui sera enregistré et utilisé par l'application. La raison est expliquée dans la section 5 (« Deux façons de s'en servir »).
+
 
 Chiffres : 309 160 logements d'entraînement, 77 290 de test (80 % / 20 %), 30 colonnes, toutes numériques, aucune valeur manquante.
-Si les fichiers manquent ou sont à jour, on les régénère avec `python -m src.features`.
+Si les fichiers manquent ou ne sont plus à jour, on les régénère avec `python -m src.train --snapshot <id> --features` (ou `python -m src.features`, équivalent).
 
 ---
 
@@ -129,7 +132,7 @@ Le sens des colonnes est déduit de leur nom : à confirmer dans le dictionnaire
 
 Le code est dans `src/preprocessing.py`. Une fonction par règle, et tous les seuils sont des constantes en haut du fichier : pour changer un seuil, un seul endroit à modifier.
 Le nettoyage s'applique **séparément à chaque département**, après fusion des logements existants et neufs (la colonne `origine` garde la trace de la provenance).
-Il se lance avec `python -m src.train --snapshot <id> --preprocess`.
+Il se lance avec `python -m src.train --snapshot <id> --preprocess` (lit `data/raw/<id>/`, écrit `data/processed/<id>/`). Le jeu pour les modèles se génère ensuite avec l'étape `--features` (section 6).
 
 ### 4.1 Choisir les colonnes : de 224 à 30 (31 avec la géographie transformée)
 L'API fournit 224 colonnes. On en garde **30** (liste blanche dans `COLONNES_GARDEES`) : 21 utiles à la fois pour l'analyse et pour les modèles, et les 9 « analyse seule ».
@@ -188,20 +191,40 @@ Un modèle ne comprend que des nombres. `features.py` transforme les colonnes de
 5. **Il remplit les manquants** (médiane pour les nombres, « Inconnu » pour les textes). Il n'y en a plus dans les fichiers actuels, mais c'est une protection pour l'application : un utilisateur peut laisser un champ vide.
 
 ### Deux façons de s'en servir
-- **Pour explorer et comparer des modèles rapidement** : prendre `X_train` / `X_test`, déjà encodés (`charger_jeu()`).
-- **Pour le modèle final** : l'architecture du projet prévoit que `classifier.joblib` et `regressor.joblib` soient des **pipelines complets** (prétraitement + estimateur dans un seul objet), pour que l'application puisse leur envoyer directement la saisie brute d'un utilisateur. On part alors des données **non encodées** :
-  ```python
-  from sklearn.pipeline import Pipeline
-  from sklearn.ensemble import RandomForestClassifier
-  from src.features import charger_jeu, construire_preprocesseur
 
-  jeu = charger_jeu()
-  modele = Pipeline([("prep", construire_preprocesseur()),
-                     ("modele", RandomForestClassifier(class_weight="balanced"))])
-  modele.fit(jeu["X_train_brut"], jeu["y_train_classe"])
-  modele.predict(jeu["X_test_brut"].head(1))   # accepte une saisie brute, même avec un champ vide
-  ```
-  Le préprocesseur est alors appris dans `fit`, sur l'entraînement seulement. La liste des colonnes d'entrée à enregistrer dans `metadata.json` est `FEATURES` (dans `src/features.py`).
+Le même jeu existe en deux versions : `X_train` (30 colonnes, déjà transformées en nombres) et `X_train_brut` (12 colonnes lisibles, avec les vrais textes). Ce sont les mêmes logements, seule la forme change. Laquelle utiliser dépend de ce qu'on veut faire.
+
+**1. Tester et comparer des modèles : `X_train` (30 colonnes).**
+Les données sont déjà prêtes, il suffit de les donner au modèle :
+```python
+from src.features import charger_jeu
+jeu = charger_jeu()
+modele.fit(jeu["X_train"], jeu["y_train_classe"])
+```
+C'est rapide et simple, parfait pour l'exploration.
+
+**2. Le modèle final utilisé par l'application : `X_train_brut` (12 colonnes).**
+Dans l'application, l'utilisateur saisit **12 valeurs lisibles** (surface, type de bâtiment, énergie de chauffage…). Or un modèle entraîné sur `X_train` attend **30 nombres** : si on lui envoie la saisie telle quelle, il plante.
+
+La solution est d'enregistrer **une seule chaîne** qui contient deux étapes à la suite :
+1. la « recette » de transformation (12 colonnes lisibles → 30 nombres) ;
+2. le modèle.
+
+C'est ce qu'on appelle un **pipeline complet**. L'application lui donne directement les 12 valeurs saisies et il fait tout le reste. Pour le construire, on l'entraîne avec `X_train_brut`, puisque c'est le pipeline lui-même qui applique la transformation :
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from src.features import charger_jeu, construire_preprocesseur
+
+jeu = charger_jeu()
+modele = Pipeline([("prep", construire_preprocesseur()),      # 12 colonnes -> 30
+                   ("modele", RandomForestClassifier(class_weight="balanced"))])
+modele.fit(jeu["X_train_brut"], jeu["y_train_classe"])        # on donne le brut ici
+modele.predict(jeu["X_test_brut"].head(1))                    # accepte une saisie brute, même avec un champ vide
+```
+Le préprocesseur est alors appris dans `fit`, sur l'entraînement seulement. La liste des colonnes d'entrée à enregistrer dans `metadata.json` est `FEATURES` (dans `src/features.py`). L'architecture du projet prévoit que `classifier.joblib` et `regressor.joblib` soient de tels pipelines complets.
+
+**En résumé : on explore avec les 30 colonnes, on livre avec les 12 colonnes et le pipeline complet.**
 
 ### Pourquoi apprendre sur l'entraînement seulement
 Si les règles (la médiane, la liste des modalités) étaient calculées sur toutes les données, y compris le test, le modèle « verrait » un peu du test avant d'être évalué, et ses scores seraient trop beaux. On évite cette **fuite de données** en apprenant tout sur l'entraînement.
@@ -234,7 +257,7 @@ Attention : cette commande lance un vrai téléchargement (`--help` ne l'en emp�
 python -m src.audit_colonnes
 ```
 (ou `--snapshot <id>`). L'outil compare les colonnes du snapshot à celles déjà examinées dans `docs/colonnes_retenues.csv` et affiche :
-- **Colonnes disparues** : doit afficher *aucune*. Sinon, corriger `preprocessing.py` avant de continuer (le nettoyage s'arrête de toute façon si une colonne critique manque).
+- **Colonnes disparues** : doit afficher *aucune*. Sinon, corriger `preprocessing.py` avant de continuer (le nettoyage ne vérifie pas lui-même l'absence d'une colonne : il risque de s'arrêter avec une erreur ou de produire un résultat incomplet).
 - **Colonnes nouvelles**, avec le taux de manquants, des exemples de valeurs et une suggestion. `ÉCARTER` : famille qui contient la réponse (`conso_`, `cout_`, `emission_ges`…), identifiant, trop vide, constante ou trop de modalités. `CANDIDATE` : à examiner (utile pour prédire ? saisissable dans l'application ?).
 - Pour garder une colonne : l'ajouter à `COLONNES_GARDEES` dans `preprocessing.py`, et dans `features.py` si c'est une entrée de modèle.
 - Dans tous les cas, **noter la décision** dans `docs/colonnes_retenues.csv` (gardée ou supprimée), pour que l'audit suivant ne la signale plus.
@@ -261,16 +284,14 @@ python -c "import pandas as pd; d=pd.read_parquet('data/processed/<id>/75.parque
 ```
 (pour chaque département). Le résultat doit être 0.
 
-### Étape 6 : générer le jeu des modèles (seulement si on réentraîne)
+### Étape 6 : générer le jeu des modèles
 ```
 python -m src.train --snapshot <id> --features
 ```
-(ou `python -m src.features --snapshot <id>`, équivalent). Écrit `data/ready/<id>/` à partir de `data/processed/<id>/` : le nettoyage doit donc avoir été fait avant. Sans aucune option, `python -m src.train` enchaîne maintenant les trois étapes : chargement, nettoyage, jeu des modèles.
-D'après l'architecture du projet, les modèles ne sont **pas** réentraînés à chaque rafraîchissement des données : l'entraînement est manuel, environ une fois par an ou après un changement de méthode du DPE. Un rafraîchissement met à jour les données de l'application ; cette étape n'est nécessaire que pour réentraîner.
-```
-python -m src.features --snapshot <id>
-```
-Écrit `data/ready/<id>/`. Vérifier : `python -c "from src.features import charger_jeu; j=charger_jeu(); print(j['X_train'].shape)"`.
+Cette étape est intégrée à `train.py` : elle lit `data/processed/<id>/` (le nettoyage doit donc avoir été fait avant) et écrit `data/ready/<id>/`. Il n'y a plus besoin de lancer `python -m src.features` à la main (la commande reste possible seule, elle fait la même chose).
+
+**Raccourci : tout en une commande.** Sans aucune option, `python -m src.train --snapshot <id>` enchaîne les trois étapes : chargement, nettoyage, jeu des modèles. Pratique, mais on ne voit alors le bilan qu'après coup. **Pour un nouveau snapshot, il vaut mieux faire en deux temps** : d'abord `--preprocess` (étapes 3 à 5 : bilan et absence de manquants), puis `--features` seulement si le bilan est normal. Les deux jeux restent ainsi toujours issus du même snapshot, sans risque d'oublier l'un des deux.
+
 
 ### Étape 7 : documenter et enregistrer
 Mettre à jour ce document si une décision a changé, puis enregistrer (commit).
@@ -279,10 +300,9 @@ Mettre à jour ce document si une décision a changé, puis enregistrer (commit)
 | Situation | Pris en charge ? |
 |---|---|
 | Règles de nettoyage, filet de sécurité | oui, par l'étape `preprocess` |
-| Colonne critique disparue | oui : arrêt avec un message clair |
-| Colonne secondaire disparue | oui : recréée vide, avertissement |
+| Colonne disparue de l'API | **non** : détectée seulement par l'audit (étape 2) ; sans lui, le nettoyage peut s'arrêter avec une erreur |
 | Nouvelle colonne de l'API | ignorée sans erreur ; **détectée seulement par l'audit (étape 2, à lancer à la main)** |
-| Nouvelle valeur (période, niveau d'isolation) | avertissement ; encodée « inconnue » sans plantage |
+| Nouvelle valeur (période, niveau d'isolation) | l'encodage ne plante pas (la valeur est traitée comme inconnue), mais **aucun avertissement** n'est émis |
 | Seuils adaptés aux nouvelles données | **non** : à vérifier avec le bilan (étape 4) |
 | Jeu pour les modèles (`data/ready`) | oui si on lance `train.py` sans option ou avec `--features` (étape `features`) ; `python -m src.features` reste possible seul |
 | Doublons entre ancien et nouveau snapshot | **non** : la déduplication ne travaille que sur un snapshot |
@@ -291,24 +311,15 @@ Mettre à jour ce document si une décision a changé, puis enregistrer (commit)
 ---
 
 ## 7. Limites des données (à reprendre dans le rapport)
-- **Échantillon plafonné** : 100 000 logements existants par département (plafond atteint dans les trois). Les logements neufs (8 644 à Paris, 40 344 dans le Nord, 44 964 dans le Rhône) sont sous le plafond, donc probablement complets. Le poids des neufs varie beaucoup : environ 8 % à Paris contre 29 à 31 % ailleurs.
-- **Pas forcément un tirage aléatoire.** Sur l'ancien snapshot de 10 000 lignes, les existants de Lille et Lyon étaient concentrés sur 2021 et 2026, ceux de Paris sur 2026. À revérifier sur le snapshot de 100 000 lignes avant toute conclusion sur l'évolution dans le temps.
+- **Échantillon plafonné** : 100 000 logements existants par département (plafond atteint dans les trois). Les logements neufs (8 644 à Paris, 40 344 dans le Nord, 44 964 dans le Rhône) sont sous le plafond, donc probablement complets. Le poids des neufs varie beaucoup : environ 8 % à Paris contre 29 à 31 % ailleurs. 
 - **Trois départements seulement** : les modèles ne sont fiables que pour des logements comparables.
 - Les neufs classés « immeuble » sont exclus, même ceux qui décrivent un logement isolé.
 - Environ 0,6 % des logements sont retirés à cause d'une position GPS erronée ou d'une hauteur absente, alors que leur consommation est valable.
 - Ne pas additionner les consommations par usage : sur l'ancien snapshot, leur somme dépassait la consommation totale pour 51 % des lignes (cause non élucidée, à vérifier dans le dictionnaire de l'ADEME).
 - Pour les KPI et les graphiques, préférer la **médiane** (robuste aux valeurs extrêmes) et la consommation **par m²**. Présenter les chiffres comme ceux de l'échantillon, pas du parc réel.
 
-## 8. Questions ouvertes
-- L'échantillon des existants est-il un tirage aléatoire ? (la colonne `_rand` de l'API permettrait d'en tirer un.)
-- Que signifie `size=10000` dans `refresh()` (taille de page ou plafond) ? Comment obtenir un snapshot de 100 000 lignes par département ?
-- Qui appelle le nettoyage après un rafraîchissement lancé depuis l'application ? Et comment l'avertissement de colonnes absentes (`check_compatibility`) se combine-t-il avec le contrôle de `preprocessing.py` ?
-- Le diagramme de classes attribue le découpage entraînement / test à `DataPreprocessor` ; il est fait dans `src/features.py`. Mettre le diagramme à jour (ou déplacer le code).
-- Sensibilité au seuil de consommation : refaire l'étude avec 800 au lieu de 1 000.
-- Localisation dans les modèles : rien (choix actuel), le département, ou latitude / longitude. À trancher en comparant les scores avec et sans.
-- L'étape `features` a été ajoutée à `train.py` (modification minimale, à relire). Reste à retirer le bloc de démonstration (« A SUPPRIMER ») et les commentaires TODO devenus obsolètes.
 
-## 9. Mini-glossaire
+## 8. Mini-glossaire
 - **Snapshot** : photo des données de l'API à un moment donné, stockée dans un dossier daté.
 - **Parquet** : format de fichier de tableau, compact et rapide (on s'en sert à la place du CSV).
 - **Encodage** : transformer du texte (« Gaz naturel ») en nombres que le modèle comprend.
