@@ -6,14 +6,8 @@ Cette page ne calcule rien : elle demande les chiffres à AppService (service.ge
 import streamlit as st
 from deps import get_service
 
+from affichage import fmt_nombre
 from src.analysis import NOMS_DEPARTEMENTS, UNITE_CONSO
-
-
-def fmt_nombre(valeur, decimales=0):
-    """Met un nombre en forme à la française (386450 -> '386 450'). Renvoie 'n/a' si la valeur est absente."""
-    if valeur is None:
-        return "n/a"
-    return f"{valeur:,.{decimales}f}".replace(",", " ")
 
 
 service = get_service()

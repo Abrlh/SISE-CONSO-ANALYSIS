@@ -95,3 +95,29 @@ class AppService():
             "repartition_etiquettes": self.__analyzer.repartition_etiquettes(df),
             "conso_par_etiquette": self.__analyzer.conso_par_etiquette(df),
         }
+
+    # ------------------------------------------------------------------ visualisations
+
+    def get_options_filtres(self, snapshot_id:str|None=None) -> dict:
+        """Valeurs proposées dans les filtres de la page Visualisations."""
+        return self.__analyzer.options_filtres(self.load_data(snapshot_id))
+
+    def get_visualisations(self, filtres:dict|None=None, snapshot_id:str|None=None) -> dict:
+        """Données de la page Visualisations, calculées sur les logements qui respectent les filtres.
+
+        Si aucun logement ne correspond, seuls nb_total et nb_filtre sont renvoyés.
+        """
+        df = self.load_data(snapshot_id)
+        filtre = self.__analyzer.filtrer(df, filtres or {})
+        resultat = {"nb_total": int(len(df)), "nb_filtre": int(len(filtre))}
+        if filtre.empty:
+            return resultat
+        resultat.update({
+            "kpi": self.__analyzer.kpi(filtre),
+            "repartition_etiquettes": self.__analyzer.repartition_etiquettes(filtre),
+            "histogramme": self.__analyzer.histogramme_conso(filtre),
+            "boites": self.__analyzer.boites_conso_par_etiquette(filtre),
+            "nuage": self.__analyzer.nuage_surface_conso(filtre),
+            "par_departement": self.__analyzer.conso_par_departement(filtre),
+        })
+        return resultat
