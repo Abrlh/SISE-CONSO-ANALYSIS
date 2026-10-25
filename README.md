@@ -12,7 +12,7 @@ python -m src.train              # entraînement (télécharge les données si a
 python -m src.train --refresh    # idem avec nouveau téléchargement
 streamlit run app/main.py        # application
 ```
-## Nettoyage des doonées
+## Nettoyage des données
 
 1. Cloner le dépôt puis, à la racine du projet, créer l'environnement Python :
    python -m venv .venv
