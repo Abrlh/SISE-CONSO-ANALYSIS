@@ -19,7 +19,8 @@ streamlit run app/main.py        # application
    .venv\Scripts\Activate.ps1
    pip install -r requirements.txt
 
-2. Générer les données propres (obligatoire après chaque clone ou pull) :
+2. Générer les données propres (obligatoire après chaque clone) :
+   
    python -m src.train --snapshot 2026-10-12_132605 --preprocess
 
    Cette commande lit data/raw/ et écrit data/processed/, en écrasant les
