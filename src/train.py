@@ -20,7 +20,7 @@ class TrainingPipeline():
         pass
 
     # Étapes disponibles, toujours exécutées dans cet ordre
-    STEPS = ("load", "preprocess", "features")
+    STEPS = ("load", "preprocess")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """
@@ -44,13 +44,10 @@ class TrainingPipeline():
         if "preprocess" in steps:
             print(f"=== Étape 2 : prétraitement des données brutes du snapshot {snapid} ===")
             self.preprocess(snapid, datasets)
-        if "features" in steps:
-            print(f"=== Étape 3 : jeu de données pour les modèles du snapshot {snapid} ===")
-            self.features(snapid)
 
-        # 4 train model (snap id)
+        # 3 train model (snap id)
 
-        # 5 evaluate model (snap id)
+        # 4 evaluate model (snap id)
 
         # adapt task config
 
@@ -133,18 +130,6 @@ class TrainingPipeline():
         return processed
 
 
-    ##########################
-    # 3 features : jeu de données encodé et découpé pour les modèles
-    def features(self, snapid:str)-> None:
-        """Écrit data/ready/<snapid>/ à partir de data/processed/<snapid>/ (donc après preprocess).
-
-        Voir src/features.py et docs/nettoyage_donnees.md. Import ici pour que les étapes
-        load et preprocess fonctionnent même sans scikit-learn.
-        """
-        from .features import generer_jeu
-        generer_jeu(snapid)
-
-
 if __name__ == "__main__":
     # Options de la ligne de commande, ex. : python -m src.train --refresh
     
@@ -165,8 +150,6 @@ if __name__ == "__main__":
                        help="charge les données brutes (avec --refresh : télécharge un nouveau snapshot)")
     steps.add_argument("--preprocess", action="store_true",
                        help="prétraite les données brutes et enregistre le résultat dans data/processed/")
-    steps.add_argument("--features", action="store_true",
-                       help="encode et découpe les données prétraitées pour les modèles (écrit data/ready/)")
 
     
     
@@ -179,8 +162,6 @@ if __name__ == "__main__":
         selected.append("load")
     if args.preprocess:
         selected.append("preprocess")
-    if args.features:
-        selected.append("features")
     # Aucune étape demandée : on les lance toutes
     if not selected:
         selected = list(TrainingPipeline.STEPS)
