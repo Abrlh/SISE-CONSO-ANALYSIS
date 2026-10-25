@@ -1,0 +1,234 @@
+﻿colonne,groupe,decision,raison,manq_existants_%,manq_neufs_%
+_geopoint,Géographie,gardée,carte et filtres géographiques,0.0,0.0
+_i,Technique,supprimée,"identifiant interne de l'API, sans information métier",0.0,0.0
+_id,Technique,supprimée,"identifiant interne de l'API, sans information métier",0.0,0.0
+_rand,Technique,supprimée,"identifiant interne de l'API, sans information métier",0.0,0.0
+_score,Technique,supprimée,"identifiant interne de l'API, sans information métier",100.0,100.0
+adresse_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",2.0,0.0
+adresse_brut,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+adresse_complete_brut,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+annee_construction,Redondante,supprimée,"remplacée par periode_construction, complète",63.0,0.0
+appartement_non_visite,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",89.0,8.0
+apport_interne_saison_chauffe,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,100.0
+apport_interne_saison_froide,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",2.0,100.0
+apport_solaire_saison_chauffe,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,100.0
+apport_solaire_saison_froide,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",2.0,100.0
+besoin_chauffage,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+besoin_ecs,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+besoin_ecs_batiment,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,92.0
+besoin_ecs_logement,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,92.0
+besoin_refroidissement,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",2.0,98.0
+categorie_enr,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,81.0,65.0
+classe_altitude,Redondante,supprimée,manquantes à 45-71 % chez les neufs ; le département porte l'information,1.0,71.0
+classe_inertie_batiment,Trop incomplète,supprimée,manquantes à 96 % ou plus chez les neufs,8.0,99.0
+code_departement_ban,Géographie,gardée,carte et filtres géographiques,0.0,0.0
+code_insee_ban,Géographie,gardée,carte et filtres géographiques,0.0,0.0
+code_postal_ban,Géographie,gardée,carte et filtres géographiques,0.0,0.0
+code_postal_brut,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+code_region_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+complement_adresse_batiment,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",60.0,78.0
+complement_adresse_logement,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",59.0,31.0
+configuration_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+configuration_installation_chauffage_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+configuration_installation_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+conso_5_usages_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_5_usages_ef_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_5_usages_ef_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+conso_5_usages_ef_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+conso_5_usages_ep,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+conso_5_usages_par_m2_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_5_usages_par_m2_ep,Cible,gardée,variable à analyser et à prédire,0.0,0.0
+conso_auxiliaires_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_auxiliaires_ep,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+conso_chauffage_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_chauffage_ef_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_chauffage_ef_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+conso_chauffage_ef_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+conso_chauffage_ep,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+conso_chauffage_generateur_n1_installation_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",41.0,100.0
+conso_chauffage_generateur_n1_installation_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",93.0,100.0
+conso_chauffage_generateur_n2_installation_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",98.0,100.0
+conso_chauffage_generateur_n2_installation_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,100.0
+conso_chauffage_installation_chauffage_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",41.0,99.0
+conso_chauffage_installation_chauffage_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",93.0,100.0
+conso_eclairage_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_eclairage_ep,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+conso_ecs_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_ecs_ef_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_ecs_ef_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+conso_ecs_ef_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+conso_ecs_ep,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+conso_ef_generateur_n1_ecs_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",42.0,100.0
+conso_ef_installation_ecs_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",42.0,99.0
+conso_refroidissement_annuel,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",98.0,100.0
+conso_refroidissement_ef,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+conso_refroidissement_ep,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+coordonnee_cartographique_x_ban,Redondante,supprimée,la carte utilise _geopoint (latitude et longitude),0.0,0.0
+coordonnee_cartographique_y_ban,Redondante,supprimée,la carte utilise _geopoint (latitude et longitude),0.0,0.0
+cop_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+cout_auxiliaires,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_chauffage,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_chauffage_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_chauffage_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+cout_chauffage_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+cout_eclairage,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_ecs,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_ecs_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_ecs_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+cout_ecs_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+cout_refroidissement,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_total_5_usages,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+cout_total_5_usages_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+cout_total_5_usages_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+cout_total_5_usages_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+date_derniere_modification_dpe,Redondante,supprimée,date_reception_dpe suffit pour le suivi et le rafraîchissement,0.0,0.0
+date_etablissement_dpe,Redondante,supprimée,date_reception_dpe suffit pour le suivi et le rafraîchissement,0.0,0.0
+date_fin_validite_dpe,Redondante,supprimée,date_reception_dpe suffit pour le suivi et le rafraîchissement,0.0,0.0
+date_installation_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",92.0,100.0
+date_reception_dpe,Identification,gardée,"suivi des DPE, filtre neuf/existant, rafraîchissement",0.0,0.0
+date_visite_diagnostiqueur,Redondante,supprimée,date_reception_dpe suffit pour le suivi et le rafraîchissement,0.0,0.0
+deperditions_baies_vitrees,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_enveloppe,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_murs,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_planchers_bas,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",2.0,98.0
+deperditions_planchers_hauts,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",2.0,98.0
+deperditions_ponts_thermiques,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_portes,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_renouvellement_air,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",1.0,98.0
+deperditions_totales_batiment,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,92.0
+deperditions_totales_logement,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,92.0
+description_generateur_chauffage_n1_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",47.0,100.0
+description_generateur_chauffage_n1_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+description_generateur_chauffage_n2_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+description_generateur_chauffage_n2_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+description_generateur_froid,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+description_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",52.0,99.0
+description_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",47.0,99.0
+description_installation_chauffage_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+description_installation_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",47.0,99.0
+electricite_pv_autoconsommee,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,98.0,100.0
+emission_ges_5_usages,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_5_usages_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_5_usages_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+emission_ges_5_usages_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+emission_ges_5_usages_par_m2,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+emission_ges_auxiliaires,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_chauffage,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_chauffage_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_chauffage_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+emission_ges_chauffage_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+emission_ges_eclairage,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_ecs,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_ecs_energie_n1,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+emission_ges_ecs_energie_n2,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",44.0,21.0
+emission_ges_ecs_energie_n3,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",100.0,99.0
+emission_ges_refroidissement,Résultat de calcul,supprimée,"résultat intermédiaire du calcul du DPE, détail non utile à l'app",0.0,0.0
+etiquette_dpe,Cible,gardée,variable à analyser et à prédire,0.0,0.0
+etiquette_ges,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+facteur_couverture_solaire_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+facteur_couverture_solaire_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",99.0,100.0
+facteur_couverture_solaire_saisi_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+facteur_couverture_solaire_saisi_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+hauteur_sous_plafond,Logement,gardée,"filtres, graphiques et modèles",0.0,0.0
+id_rnb,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",77.0,80.0
+identifiant_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",2.0,0.0
+indicateur_confort_ete,Trop incomplète,supprimée,manquantes à 46 % chez les existants et à 90 % ou plus chez les neufs,46.0,90.0
+inertie_lourde,Trop incomplète,supprimée,manquantes à 96 % ou plus chez les neufs,60.0,96.0
+isolation_toiture,Trop incomplète,supprimée,manquantes à 46 % chez les existants et à 90 % ou plus chez les neufs,46.0,95.0
+logement_traversant,Trop incomplète,supprimée,manquantes à 46 % chez les existants et à 90 % ou plus chez les neufs,46.0,95.0
+methode_application_dpe,Redondante,supprimée,recoupe origine et type_batiment,0.0,0.0
+modele_dpe,Quasi constante,supprimée,"une seule valeur chez les existants, plus de 96 % de RT2012 chez les neufs",0.0,0.0
+nom_commune_ban,Géographie,gardée,carte et filtres géographiques,0.0,0.0
+nom_commune_brut,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+nom_residence,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",96.0,97.0
+nom_rue_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",5.0,15.0
+nombre_appartement,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",57.0,24.0
+nombre_logements_desservis_par_installation_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",43.0,99.0
+nombre_module,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,99.0,100.0
+nombre_niveau_immeuble,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",88.0,38.0
+nombre_niveau_logement,Incohérente,supprimée,"plus de 3 niveaux pour 29 % des appartements neufs, contre 2-3 % chez les existants ; manquante à 14-45 % chez les neufs",0.0,45.0
+numero_dpe,Identification,gardée,"suivi des DPE, filtre neuf/existant, rafraîchissement",0.0,0.0
+numero_dpe_immeuble_associe,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",92.0,75.0
+numero_dpe_remplace,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",94.0,95.0
+numero_etage_appartement,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",19.0,69.0
+numero_immatriculation_copropriete,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",100.0,100.0
+numero_rpls_logement,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",100.0,100.0
+numero_voie_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",13.0,55.0
+origine,Identification,gardée,"suivi des DPE, filtre neuf/existant, rafraîchissement",0.0,0.0
+periode_construction,Logement,gardée,"filtres, graphiques et modèles",0.0,0.0
+periode_installation_generateur_froid,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+position_logement_dans_immeuble,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",97.0,99.0
+presence_brasseur_air,Trop incomplète,supprimée,manquantes à 46 % chez les existants et à 90 % ou plus chez les neufs,46.0,95.0
+presence_production_pv,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,93.0,100.0
+production_ecs_solaire_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",97.0,100.0
+production_electricite_pv_kwhep_par_an,Trop incomplète,supprimée,"94 % à 96 % de zéros, valeurs aberrantes",0.0,0.0
+protection_solaire_exterieure,Trop incomplète,supprimée,manquantes à 46 % chez les existants et à 90 % ou plus chez les neufs,46.0,95.0
+provenance_id_rnb,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",77.0,80.0
+qualite_isolation_enveloppe,Isolation,gardée,"analyse, modèles à décider",0.0,0.0
+qualite_isolation_menuiseries,Isolation,gardée,"analyse, modèles à décider",0.0,0.0
+qualite_isolation_murs,Isolation,gardée,"analyse, modèles à décider",0.0,0.0
+qualite_isolation_plancher_bas,Isolation,gardée,"analyse, modèles à décider",7.0,0.0
+qualite_isolation_plancher_haut_comble_amenage,Trop incomplète,supprimée,isolation du plancher haut : manquantes à 54 % ou plus,94.0,96.0
+qualite_isolation_plancher_haut_comble_perdu,Trop incomplète,supprimée,isolation du plancher haut : manquantes à 54 % ou plus,54.0,100.0
+qualite_isolation_plancher_haut_toit_terrasse,Trop incomplète,supprimée,isolation du plancher haut : manquantes à 54 % ou plus,87.0,100.0
+score_ban,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+statut_geocodage,Adresse détaillée,supprimée,"adresse précise, inutile : la carte utilise le point géocodé",0.0,0.0
+surface_chauffee_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+surface_chauffee_installation_chauffage_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+surface_climatisee,Trop incomplète,supprimée,climatisation : manquantes à 98 % ou plus,98.0,100.0
+surface_habitable_desservie_par_installation_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+surface_habitable_immeuble,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",86.0,38.0
+surface_habitable_logement,Logement,gardée,"filtres, graphiques et modèles",1.0,1.0
+surface_tertiaire_immeuble,Copropriété / immeuble,supprimée,"information sur le bâtiment ou la copropriété, hors sujet",100.0,100.0
+surface_totale_capteurs_pv,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,99.0,100.0
+surface_ventilee,Trop incomplète,supprimée,ventilation : manquantes à 95 % ou plus,95.0,99.0
+systeme_production_electricite_origine_renouvelable,Trop incomplète,supprimée,panneaux solaires et énergies renouvelables : manquantes à 65 % ou plus,93.0,100.0
+type_batiment,Logement,gardée,"filtres, graphiques et modèles",0.0,0.0
+type_emetteur_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+type_emetteur_installation_chauffage_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+type_energie_climatisation,Trop incomplète,supprimée,climatisation : manquantes à 98 % ou plus,98.0,100.0
+type_energie_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+type_energie_generateur_n1_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+type_energie_generateur_n1_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+type_energie_generateur_n2_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+type_energie_generateur_n2_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+type_energie_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",0.0,0.0
+type_energie_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",44.0,21.0
+type_energie_n3,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,99.0
+type_energie_principale_chauffage,Chauffage / eau chaude,gardée,"filtres, graphiques et modèles",0.0,0.0
+type_energie_principale_ecs,Redondante,supprimée,« Non affecté » pour 100 % des neufs : recoupe origine,0.0,0.0
+type_generateur_chauffage_principal,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",47.0,100.0
+type_generateur_chauffage_principal_ecs,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",47.0,100.0
+type_generateur_froid,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+type_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+type_generateur_n1_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+type_generateur_n1_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+type_generateur_n2_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+type_generateur_n2_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+type_installation_chauffage,Chauffage / eau chaude,gardée,"filtres, graphiques et modèles",53.0,24.0
+type_installation_chauffage_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+type_installation_chauffage_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+type_installation_ecs,Chauffage / eau chaude,gardée,"filtres, graphiques et modèles",53.0,24.0
+type_installation_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+type_installation_solaire_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+type_ventilation,Trop incomplète,supprimée,ventilation : manquantes à 95 % ou plus,95.0,99.0
+typologie_logement,Immeuble / diagnostic,supprimée,"information sur l'immeuble ou le diagnostic, manquante à plus de 50 % pour un type",97.0,99.0
+ubat_w_par_m2_k,Analyse seulement,gardée (hors modèles),"contient déjà la réponse ou résultat de calcul : KPI et graphiques, pas les modèles",0.0,0.0
+usage_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+usage_generateur_n1_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",41.0,99.0
+usage_generateur_n1_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",93.0,100.0
+usage_generateur_n2_installation_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",98.0,100.0
+usage_generateur_n2_installation_n2,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",100.0,100.0
+ventilation_posterieure_2012,Quasi constante,supprimée,96 % à 99 % de 0,0.0,0.0
+version_dpe,Redondante,supprimée,reflète la date de réception ; inconnue du particulier,0.0,0.0
+volume_stockage_generateur_n1_ecs_n1,Équipement détaillé,supprimée,"détail technique des équipements, très incomplet",42.0,99.0
+zone_climatique,Redondante,supprimée,manquantes à 45-71 % chez les neufs ; le département porte l'information,1.0,71.0
+conso_ef_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+date_installation_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+description_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+facteur_couverture_solaire_installation_chauffage_n2,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+facteur_couverture_solaire_saisi_installation_chauffage_n2,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+type_energie_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+type_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+usage_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
+volume_stockage_generateur_n2_ecs_n1,Audit nouvelles colonnes,supprimée,"audit 2026-10-12 : quasi vide, détail rare du 2e générateur",,
