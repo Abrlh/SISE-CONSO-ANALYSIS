@@ -54,6 +54,7 @@ Pour avoir les trois départements ensemble : `pd.concat([...], ignore_index=Tru
 ### Les obtenir : les données propres ne sont pas dans Git
 Les fichiers de `data/processed` pèsent plus de 130 Mo en tout (de 38 à 51 Mo par département). Les mettre dans Git alourdirait le dépôt à chaque changement de règle, car Git garde toutes les versions. On **les régénère donc sur sa machine**, à partir des données brutes qui, elles, sont dans le dépôt :
 
+Attention : des anciennes versions de ces fichiers sont encore suivies par Git (reste d’un ancien commit). Après un clone ou un pull, relancez toujours la commande ci-dessous, qui les écrase.
 ```
 python -m src.train --snapshot 2026-10-12_132605 --preprocess
 ```
