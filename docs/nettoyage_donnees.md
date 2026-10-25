@@ -231,7 +231,6 @@ Ajouter les colonnes nouvelles à `docs/colonnes_retenues.csv`, mettre à jour c
 - **Immeubles** : exclus par défaut ; à confirmer par l'équipe.
 - **Seuil de colonnes vides** (80 %) et **seuil de consommation** (1 000 contre 800 kWh/m²/an) : sensibilité à étudier.
 - **Données propres** : régénérées à la demande plutôt que stockées dans Git ; à confirmer par l'équipe.
-- **Rafraîchissement depuis l'application** : qui appelle le nettoyage et l'audit, et comment afficher le rapport (colonnes apparues, disparues, retirées).
 - **Définition des KPI**.
 - **Localisation dans les modèles** (latitude / longitude, département) : comparer avec et sans.
 - **Découpe entraînement / test** : par département ou non, organisation des dossiers.
