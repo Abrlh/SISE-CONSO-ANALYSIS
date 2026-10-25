@@ -6,34 +6,28 @@ Prétraitement des DPE (logements neufs et existants).
   données dans l'app et au réentraînement.
 - La classe DataPreprocessor fusionne neufs et existants par département, puis
   applique ces règles.
+Le nettoyage ne sélectionne PAS de variables : toutes les colonnes de l'API sont
+conservées, sauf celles qui sont trop vides (seuil SEUIL_MANQUANT). Les colonnes
+nouvelles d'un rafraîchissement entrent donc automatiquement. Les valeurs manquantes
+ne sont pas remplacées : l'imputation se fera à la modélisation, sur l'entraînement
+seulement.
 Les décisions et leurs justifications sont documentées dans
 notebooks/02_nettoyage_donnees.ipynb et docs/colonnes_retenues.csv.
 """
-import warnings
 import pandas as pd
 
 # ---------------------------------------------------------------------------
-# Colonnes conservées (30 sur 224)
+# Colonnes
 # ---------------------------------------------------------------------------
-# Colonnes pour l'analyse seulement : elles contiennent déjà la réponse ou sont
-# des résultats de calcul du DPE. À EXCLURE des variables d'entrée des modèles.
+# Pas de liste blanche : toutes les colonnes sont gardées, sauf celles qui sont trop
+# vides (voir SEUIL_MANQUANT). Cette liste n'est qu'un AVERTISSEMENT : ces colonnes
+# contiennent déjà la réponse ou sont des résultats de calcul du DPE. Elles sont
+# utiles pour l'analyse, mais à EXCLURE des variables d'entrée des modèles.
 COLONNES_ANALYSE = [
     "etiquette_ges", "emission_ges_5_usages_par_m2", "conso_5_usages_ep",
     "conso_chauffage_ep", "conso_ecs_ep", "conso_eclairage_ep",
     "conso_auxiliaires_ep", "cout_total_5_usages", "ubat_w_par_m2_k",
 ]
-COLONNES_GARDEES = [
-    "numero_dpe", "date_reception_dpe", "origine",                  # identification
-    "etiquette_dpe", "conso_5_usages_par_m2_ep",                    # cibles
-    "code_departement_ban", "code_postal_ban", "nom_commune_ban",   # géographie
-    "code_insee_ban", "_geopoint",
-    "surface_habitable_logement", "periode_construction",           # logement
-    "type_batiment", "hauteur_sous_plafond",
-    "type_energie_principale_chauffage", "type_installation_chauffage",
-    "type_installation_ecs",                                        # chauffage, eau chaude
-    "qualite_isolation_enveloppe", "qualite_isolation_murs",        # isolation
-    "qualite_isolation_menuiseries", "qualite_isolation_plancher_bas",
-] + COLONNES_ANALYSE
 
 # ---------------------------------------------------------------------------
 # Seuils (justifiés dans le notebook)
@@ -44,18 +38,13 @@ GES_MAX = 1000                             # kg CO2/m²/an (les erreurs de Lyon 
 HAUTEUR_MIN, HAUTEUR_MAX = 1.8, 5          # m ; hors de cette plage : unité erronée probable
 LAT_MIN, LAT_MAX = 41, 52                  # France métropolitaine
 LON_MIN, LON_MAX = -5.5, 10
+SEUIL_MANQUANT = 0.8                       # une colonne vide à plus de 80 % est retirée
+TYPES_BATIMENT_EXCLUS = ["immeuble"]       # [] pour garder les immeubles
 
 COLONNES_OBLIGATOIRES = ["numero_dpe", "etiquette_dpe",
                          "conso_5_usages_par_m2_ep", "surface_habitable_logement"]
 COLONNES_NUMERIQUES = ["conso_5_usages_par_m2_ep", "surface_habitable_logement",
                        "emission_ges_5_usages_par_m2", "hauteur_sous_plafond"]
-COLONNES_CATEGORIELLES = [
-    "periode_construction", "type_batiment", "type_energie_principale_chauffage",
-    "type_installation_chauffage", "type_installation_ecs",
-    "qualite_isolation_enveloppe", "qualite_isolation_murs",
-    "qualite_isolation_menuiseries", "qualite_isolation_plancher_bas",
-]
-
 # Ordres des catégories ordonnées (pour les filtres et les graphiques)
 ORDRE_PERIODE = ["avant 1948", "1948-1974", "1975-1977", "1978-1982", "1983-1988",
                  "1989-2000", "2001-2005", "2006-2012", "2013-2021", "après 2021"]
@@ -65,24 +54,32 @@ ORDRE_ISOLATION = ["insuffisante", "moyenne", "bonne", "très bonne"]
 
 # Règles de nettoyage : une fonction par règle, DataFrame en entrée et en sortie
 
-def garder_colonnes(df):
-    """Ne garde que les colonnes utiles à l'application (liste blanche)."""
-    return df[[c for c in COLONNES_GARDEES if c in df.columns]].copy()
+def verifier_colonnes_obligatoires(df):
+    """Arrête le nettoyage avec un message clair si une colonne indispensable manque."""
+    manquantes = [c for c in COLONNES_OBLIGATOIRES if c not in df.columns]
+    if manquantes:
+        raise ValueError(f"Colonnes indispensables absentes des données : {manquantes}")
+    return df
 
 def convertir_types(df):
     """Nombres et dates : les valeurs illisibles deviennent manquantes."""
     df = df.copy()
     for col in COLONNES_NUMERIQUES:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-    df["date_reception_dpe"] = pd.to_datetime(df["date_reception_dpe"], errors="coerce")
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    if "date_reception_dpe" in df.columns:
+        df["date_reception_dpe"] = pd.to_datetime(df["date_reception_dpe"], errors="coerce")
     return df
 
 def supprimer_doublons(df):
     return df.drop_duplicates(subset="numero_dpe")
 
 def exclure_immeubles(df):
-    """Un DPE d'immeuble décrit un bâtiment entier, pas un logement."""
-    return df[df["type_batiment"] != "immeuble"]
+    """Un DPE d'immeuble décrit un bâtiment entier, pas un logement (voir
+    TYPES_BATIMENT_EXCLUS : liste vide pour les garder)."""
+    if "type_batiment" not in df.columns or not TYPES_BATIMENT_EXCLUS:
+        return df
+    return df[~df["type_batiment"].isin(TYPES_BATIMENT_EXCLUS)]
 
 def supprimer_manquants_cles(df):
     return df.dropna(subset=COLONNES_OBLIGATOIRES)
@@ -102,12 +99,16 @@ def filtrer_consommation(df):
 def filtrer_emissions_ges(df):
     """Supprime les émissions impossibles (ex. 12 neufs de Lyon, étiquette G fausse).
     Les lignes sans valeur sont conservées."""
+    if "emission_ges_5_usages_par_m2" not in df.columns:
+        return df
     return df[~(df["emission_ges_5_usages_par_m2"] > GES_MAX)]
 
 def extraire_coordonnees(df):
     """_geopoint = 'latitude,longitude'. Les points hors de la France métropolitaine
     (position erronée commune à Lille et Lyon) deviennent manquants : la ligne est
     conservée mais n'apparaît pas sur la carte."""
+    if "_geopoint" not in df.columns:
+        return df
     df = df.copy()
     coords = df["_geopoint"].astype("string").str.split(",", expand=True)
     if coords.shape[1] < 2:
@@ -121,51 +122,39 @@ def extraire_coordonnees(df):
 
 def nettoyer_hauteur(df):
     """Hauteur hors de 1,8-5 m (souvent saisie en cm) : valeur manquante, ligne conservée."""
+    if "hauteur_sous_plafond" not in df.columns:
+        return df
     df = df.copy()
     h = df["hauteur_sous_plafond"]
     df["hauteur_sous_plafond"] = h.where(h.between(HAUTEUR_MIN, HAUTEUR_MAX))
     return df
 
-def regrouper_energie(valeur):
-    """Regroupe les énergies de chauffage rares ou proches."""
-    if pd.isna(valeur):
-        return "Inconnu"
-    v = str(valeur).strip()
-    if v.startswith("Bois"):
-        return "Bois"
-    if v in {"Électricité", "Gaz naturel", "Réseau de Chauffage urbain",
-             "Fioul domestique", "Non affecté"}:
-        return v
-    return "Autre"
-
-def harmoniser_categories(df):
-    """Espaces supprimés, énergies regroupées, installation manquante = 'non applicable'
-    (colonne vide pour les maisons)."""
+def supprimer_espaces(df):
+    """Espaces en début et fin de texte supprimés, dans toutes les colonnes de texte
+    (y compris celles qui apparaîtront dans de futurs rafraîchissements)."""
     df = df.copy()
-    for col in COLONNES_CATEGORIELLES:
-        if col in df.columns:
-            df[col] = df[col].astype("string").str.strip()
-    df["type_energie_principale_chauffage"] = (
-        df["type_energie_principale_chauffage"].map(regrouper_energie))
-    for col in ["type_installation_chauffage", "type_installation_ecs", "qualite_isolation_plancher_bas"]:
-        df[col] = df[col].fillna("non applicable")
+    for col in df.columns:
+        if pd.api.types.infer_dtype(df[col], skipna=True) == "string":
+            df[col] = df[col].str.strip()
     return df
 
+def retirer_colonnes_vides(df, retirees=None):
+    """Retire les colonnes dont plus de SEUIL_MANQUANT des valeurs sont manquantes
+    (sans jamais toucher aux colonnes indispensables). Aucune valeur n'est remplacée.
+    Si `retirees` est une liste, on y ajoute (colonne, % manquant)."""
+    taux = df.isna().mean()
+    a_retirer = [c for c in df.columns
+                 if taux[c] > SEUIL_MANQUANT and c not in COLONNES_OBLIGATOIRES]
+    if retirees is not None:
+        retirees.extend((c, round(100 * taux[c], 1)) for c in a_retirer)
+    return df.drop(columns=a_retirer)
 
-def supprimer_manquants_restants(df):
-    """Filet de sécurité : supprime les lignes qui ont encore une valeur manquante
-    (latitude, longitude, hauteur, ou une colonne imprévue d'un futur scrape).
-    Une colonne entièrement vide est laissée telle quelle, avec un avertissement,
-    sinon toutes les lignes seraient supprimées."""
-    vides = [c for c in df.columns if df[c].isna().all()]
-    if vides:
-        warnings.warn(f"Colonnes entièrement vides (ignorées par le filet) : {vides}")
-    return df.dropna(subset=[c for c in df.columns if c not in vides])
 
-
-def nettoyer(df, bilan=None):
+def nettoyer(df, bilan=None, colonnes_retirees=None):
     """Un département fusionné (brut) -> DataFrame propre.
-    Si `bilan` est une liste, on y ajoute (règle, nombre de lignes) après chaque étape."""
+    Si `bilan` est une liste, on y ajoute (règle, nombre de lignes) après chaque étape.
+    Si `colonnes_retirees` est une liste, on y ajoute (colonne, % manquant) pour chaque
+    colonne retirée parce que trop vide."""
     if bilan is None:
         bilan = []
 
@@ -173,8 +162,7 @@ def nettoyer(df, bilan=None):
         bilan.append((nom, len(d)))
         return d
 
-    df = etape(df, "Données brutes")
-    df = etape(garder_colonnes(df), "Sélection des 30 colonnes")
+    df = etape(verifier_colonnes_obligatoires(df), "Données brutes")
     df = etape(convertir_types(df), "Conversion des types")
     df = etape(supprimer_doublons(df), "Doublons supprimés")
     df = etape(exclure_immeubles(df), "Immeubles exclus")
@@ -185,8 +173,9 @@ def nettoyer(df, bilan=None):
     df = etape(filtrer_emissions_ges(df), f"Émissions GES ≤ {GES_MAX}")
     df = etape(extraire_coordonnees(df), "Coordonnées extraites")
     df = etape(nettoyer_hauteur(df), "Hauteur sous plafond")
-    df = etape(harmoniser_categories(df), "Catégories harmonisées")
-    df = etape(supprimer_manquants_restants(df), "Manquants restants supprimés")
+    df = etape(supprimer_espaces(df), "Espaces supprimés")
+    df = etape(retirer_colonnes_vides(df, colonnes_retirees),
+               f"Colonnes vides à plus de {int(SEUIL_MANQUANT * 100)} % retirées")
     return df.reset_index(drop=True)
 
 
@@ -206,6 +195,7 @@ class DataPreprocessor():
         """
         self.appliquer_nettoyage = appliquer_nettoyage
         self.bilans = {}   # {departement: DataFrame du bilan} après process()
+        self.colonnes_retirees = {}   # {departement: DataFrame (colonne, % manquant)}
 
     def fusionner(self, datasets: dict) -> dict:
         """Fusionne les datasets de chaque département ; la colonne "origine"
@@ -230,8 +220,10 @@ class DataPreprocessor():
 
         resultat = {}
         for departement, df in fusionnes.items():
-            bilan = []
-            resultat[departement] = nettoyer(df, bilan)
+            bilan, retirees = [], []
+            resultat[departement] = nettoyer(df, bilan, retirees)
             self.bilans[departement] = pd.DataFrame(
                 bilan, columns=["etape", "lignes"]).set_index("etape")
+            self.colonnes_retirees[departement] = pd.DataFrame(
+                retirees, columns=["colonne", "pct_manquant"]).set_index("colonne")
         return resultat

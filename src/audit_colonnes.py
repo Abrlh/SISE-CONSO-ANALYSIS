@@ -2,8 +2,10 @@
 Audit des colonnes d'un snapshot : repère les colonnes NOUVELLES (absentes de
 docs/colonnes_retenues.csv) et les colonnes DISPARUES, et décrit les nouvelles.
 
-Le nettoyage ignore les colonnes nouvelles (liste blanche) : cet audit sert à décider,
-à la main, si l'une d'elles mérite d'être ajoutée.
+Le nettoyage garde toutes les colonnes, sauf celles trop vides : une colonne nouvelle
+entre donc automatiquement dans les données propres. Cet audit sert à voir ce qui est
+apparu ou disparu, quelles nouvelles colonnes seront retirées (trop vides), et lesquelles
+semblent contenir la réponse (à ne pas utiliser en entrée d'un modèle).
 
 Usage :
     python -m src.audit_colonnes                      # dernier snapshot
@@ -15,27 +17,23 @@ from pathlib import Path
 
 import pandas as pd
 
-from .preprocessing import COLONNES_GARDEES
+from .preprocessing import SEUIL_MANQUANT
 
 RACINE = Path(__file__).resolve().parent.parent
 
-# Seuils de l'audit (critères calculés, pas de liste codée en dur)
-SEUIL_MANQUANT = 0.6      # plus de 60 % de vide : écartée
-SEUIL_MODALITES = 50      # plus de 50 valeurs différentes en texte : écartée
+# Seuils de l'audit (critères calculés, pas de liste codée en dur).
+# SEUIL_MANQUANT est celui du nettoyage (src/preprocessing.py).
 SEUIL_CORRELATION = 0.9   # quasi-identique à la consommation : fuite probable
 
 # Familles de colonnes qui contiennent (ou reflètent) la réponse : fuite probable
 PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "etiquette_", "deperditions",
                   "besoin", "ubat", "apport_", "production_", "indicateur_")
-# Identifiants, adresses, texte libre : inutiles pour prédire
-MOTS_IDENTIFIANT = ("numero_", "identifiant", "adresse", "nom_", "complement_",
-                    "_brut", "_id", "id_", "description_", "date_")
 CIBLE = "conso_5_usages_par_m2_ep"
 CSV_REFERENCE = RACINE / "docs" / "colonnes_retenues.csv"
 
 
 def colonnes_connues(chemin=CSV_REFERENCE):
-    """Les 224 colonnes déjà examinées (1re colonne du CSV de décisions)."""
+    """Les colonnes déjà vues (1re colonne du CSV de référence)."""
     ref = pd.read_csv(chemin)
     nom = "colonne" if "colonne" in ref.columns else ref.columns[0]
     return set(ref[nom].astype(str))
@@ -63,19 +61,13 @@ def decrire(serie, cible=None):
     ligne["corr_cible"] = None if corr is None or pd.isna(corr) else round(float(corr), 2)
 
     if nom.startswith(PREFIXES_FUITE):
-        ligne["suggestion"] = "ÉCARTER : famille qui contient la réponse (fuite)"
+        ligne["suggestion"] = "ATTENTION : famille qui contient la réponse (pas en entrée d'un modèle)"
     elif corr is not None and abs(corr) >= SEUIL_CORRELATION:
-        ligne["suggestion"] = "ÉCARTER : quasi identique à la cible (fuite probable)"
-    elif any(m in nom for m in MOTS_IDENTIFIANT):
-        ligne["suggestion"] = "ÉCARTER : identifiant, adresse, date ou texte libre"
+        ligne["suggestion"] = "ATTENTION : quasi identique à la cible (fuite probable)"
     elif vides > SEUIL_MANQUANT:
-        ligne["suggestion"] = f"ÉCARTER : trop vide (> {int(SEUIL_MANQUANT*100)} %)"
-    elif nuniq <= 1:
-        ligne["suggestion"] = "ÉCARTER : constante"
-    elif not est_num and nuniq > SEUIL_MODALITES:
-        ligne["suggestion"] = "ÉCARTER ou regrouper : trop de modalités"
+        ligne["suggestion"] = f"Sera retirée par le nettoyage (vide à plus de {int(SEUIL_MANQUANT*100)} %)"
     else:
-        ligne["suggestion"] = "CANDIDATE : à examiner (utile ? saisissable dans l'app ?)"
+        ligne["suggestion"] = "Entrera dans les données propres"
     return ligne
 
 
@@ -84,12 +76,15 @@ def auditer(df, chemin_reference=CSV_REFERENCE):
     connues = colonnes_connues(chemin_reference)
     actuelles = set(df.columns)
     nouvelles = sorted(actuelles - connues - {"origine"})
-    disparues = sorted(c for c in COLONNES_GARDEES if c not in actuelles and c != "origine")
+    ref = pd.read_csv(chemin_reference)
+    vues_gardees = set(ref[ref.columns[0]].astype(str)[ref["decision"] == "gardée"]) \
+        if "decision" in ref.columns else connues
+    disparues = sorted(c for c in vues_gardees - {"origine"} if c not in actuelles)
     cible = df[CIBLE] if CIBLE in df.columns else None
     desc = pd.DataFrame([decrire(df[c], cible) for c in nouvelles])
     if len(desc):
         # les candidates d'abord
-        desc = desc.sort_values("suggestion", key=lambda x: ~x.str.startswith("CANDIDATE"), kind="stable")
+        desc = desc.sort_values("suggestion", key=lambda x: ~x.str.startswith("ATTENTION"), kind="stable")
     return desc, disparues
 
 
@@ -104,7 +99,7 @@ def main():
     tout = pd.concat([d for dep in donnees.values() for d in dep.values()], ignore_index=True)
     desc, disparues = auditer(tout)
     print(f"Snapshot {snap} : {len(tout)} lignes, {tout.shape[1]} colonnes")
-    print(f"\nColonnes DISPARUES parmi celles utilisées : {disparues or 'aucune'}")
+    print(f"\nColonnes DISPARUES (déjà vues et gardées) : {disparues or 'aucune'}")
     print(f"\nColonnes NOUVELLES : {len(desc)}")
     if len(desc):
         with pd.option_context("display.max_colwidth", 70, "display.width", 200):
@@ -112,8 +107,8 @@ def main():
         sortie = RACINE / "docs" / f"audit_{snap}.csv"
         desc.to_csv(sortie, index=False)
         print(f"\nÉcrit : {sortie}")
-        print("Pour en garder une : l'ajouter à COLONNES_GARDEES (+ type dans features.py), "
-              "puis la noter dans docs/colonnes_retenues.csv.")
+        print("Les colonnes nouvelles non trop vides entrent automatiquement dans les données "
+              "propres. Les noter dans docs/colonnes_retenues.csv pour qu'elles ne soient plus signalées.")
 
 
 if __name__ == "__main__":
