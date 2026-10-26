@@ -12,13 +12,20 @@ class DataRepository():
     SNAPSHOT_ID_FORMAT = "%Y-%m-%d_%H%M%S"
 
     def __init__(self):
+        #Load data-raw
         self.__client:AdemeApiClient = AdemeApiClient()
         self.__root = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
         self.__storage:Storage = LocalStorage(root=self.__root)
+
         # Données prétraitées : data/processed/<snapshot_id>/<departement>.parquet + meta.json
         self.__processed_root = self.__root.parent / "processed"
         self.__processed_storage:Storage = LocalStorage(root=self.__processed_root)
+
         self.__departements = self.__get_departements()
+        # Statistiques pré-calculées : data/stats/<snapshot_id>/<nom>.parquet + meta.json
+        self.__stats_root = self.__root.parent / "stats"
+        self.__stats_storage:Storage = LocalStorage(root=self.__stats_root)
+
         pass
 
 
@@ -151,3 +158,51 @@ class DataRepository():
             raise FileNotFoundError(f"Pas de données prétraitées pour le snapshot {snapshot_id}. Lancez : python -m src.train --preprocess")
         departements = json.loads(meta_path.read_text())["departements"]
         return {d: self.__processed_storage.load(path=f"{snapshot_id}/{d}.parquet") for d in departements}
+
+    
+    def save_stats(self, snapshot_id:str, stats:dict[str, pd.DataFrame])-> None:
+        """Enregistre les statistiques pré-calculées d'un snapshot.
+
+        Arborescence créée :
+            data/stats/<snapshot_id>/<nom_stat>.parquet
+            data/stats/<snapshot_id>/meta.json
+
+        meta.json est supprimé avant l'écriture et réécrit en dernier : si l'écriture
+        est interrompue, le dossier est considéré comme absent par list_stats().
+
+        Args:
+            snapshot_id: id du snapshot dont proviennent les statistiques
+            stats: {nom_stat: DataFrame}
+        """
+        stats_dir = self.__stats_root / snapshot_id
+        stats_dir.mkdir(parents=True, exist_ok=True)
+        (stats_dir / "meta.json").unlink(missing_ok=True)
+        for name, df in stats.items():
+            self.__stats_storage.save(df, path=f"{snapshot_id}/{name}.parquet")
+        meta = {"snapshot_id": snapshot_id, "stats": list(stats),
+                "calcule_le": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        (stats_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+
+    def list_stats(self, snapshot_id:str)-> list[str]:
+        """Renvoie les noms des statistiques disponibles pour un snapshot.
+
+        Raises:
+            FileNotFoundError: pas de statistiques complètes pour ce snapshot
+        """
+        meta_path = self.__stats_root / snapshot_id / "meta.json"
+        if not meta_path.exists():
+            raise FileNotFoundError(f"Pas de statistiques pour le snapshot {snapshot_id}. Lancez : python -m src.train --snapshot {snapshot_id} --stats")
+        return json.loads(meta_path.read_text())["stats"]
+
+
+    def load_stat(self, snapshot_id:str, name:str)-> pd.DataFrame:
+        """Relit une statistique pré-calculée.
+
+        Raises:
+            FileNotFoundError: pas de statistiques pour ce snapshot
+            KeyError: statistique inconnue
+        """
+        if name not in self.list_stats(snapshot_id):
+            raise KeyError(f"Statistique inconnue : {name}. Disponibles : {self.list_stats(snapshot_id)}")
+        return self.__stats_storage.load(path=f"{snapshot_id}/{name}.parquet")
