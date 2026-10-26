@@ -206,3 +206,11 @@ class DataRepository():
         if name not in self.list_stats(snapshot_id):
             raise KeyError(f"Statistique inconnue : {name}. Disponibles : {self.list_stats(snapshot_id)}")
         return self.__stats_storage.load(path=f"{snapshot_id}/{name}.parquet")
+
+    
+    def list_stats_snapshots(self)-> list[str]:
+        """Renvoie les id des snapshots qui ont des statistiques complètes, du plus ancien
+        au plus récent (seuls les dossiers contenant meta.json sont retenus)."""
+        if not self.__stats_root.exists():
+            return []
+        return sorted(p.name for p in self.__stats_root.iterdir() if (p / "meta.json").exists())

@@ -2,6 +2,7 @@ import argparse
 
 from .data.repository import DataRepository
 from .preprocessing import DataPreprocessor
+from .analysis import StatAnalyzer
 from .models.registry import ModelRegistry
 
 
@@ -15,12 +16,13 @@ class TrainingPipeline():
 
         self.__preprocessor:DataPreprocessor = DataPreprocessor()
         self.__repository:DataRepository = DataRepository()
+        self.__analyzer:StatAnalyzer = StatAnalyzer()
         self.__registry:ModelRegistry = None
         tasks_config:dict
         pass
 
     # Étapes disponibles, toujours exécutées dans cet ordre
-    STEPS = ("load", "preprocess")
+    STEPS = ("load", "preprocess", "stats")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """
@@ -38,12 +40,16 @@ class TrainingPipeline():
         snapid = self.__resolve_snapshot(snapid, refresh)  # snapid à enregistrer dans metadata.json
 
         datasets = None
+        processed = None
         if "load" in steps:
             print(f"=== Étape 1 : chargement des données brutes du snapshot {snapid} ===")
             datasets = self.load_raw(snapid)
         if "preprocess" in steps:
             print(f"=== Étape 2 : prétraitement des données brutes du snapshot {snapid} ===")
             self.preprocess(snapid, datasets)
+        if "stats" in steps:
+            print(f"=== Étape 3 : calcul des statistiques du snapshot {snapid} ===")
+            self.stats(snapid, processed)
 
         # 3 train model (snap id)
 
@@ -129,6 +135,24 @@ class TrainingPipeline():
         self.__repository.save_processed(snapid, processed)
         return processed
 
+    ##########################
+    # 3 statistiques pré-calculées pour l'application
+    def stats(self, snapid:str, processed:dict|None=None)-> dict:
+        """Calcule les analyses statistiques et les enregistre dans data/stats/<snapid>/.
+
+        Args:
+            snapid: id du snapshot
+            processed: données propres déjà chargées, None pour les relire sur le disque
+
+        Returns:
+            {nom_analyse: DataFrame}
+        """
+        if processed is None:
+            processed = self.__repository.load_processed(snapid)
+        stats = self.__analyzer.compute_all(processed)
+        self.__repository.save_stats(snapid, stats)
+        return stats
+
 
 if __name__ == "__main__":
     # Options de la ligne de commande, ex. : python -m src.train --refresh
@@ -150,7 +174,8 @@ if __name__ == "__main__":
                        help="charge les données brutes (avec --refresh : télécharge un nouveau snapshot)")
     steps.add_argument("--preprocess", action="store_true",
                        help="prétraite les données brutes et enregistre le résultat dans data/processed/")
-
+    steps.add_argument("--stats", action="store_true",
+                        help="calcule les statistiques pré-calculées pour l'application et les enregistre dans data/stats/")
     
     
     
@@ -162,6 +187,8 @@ if __name__ == "__main__":
         selected.append("load")
     if args.preprocess:
         selected.append("preprocess")
+    if args.stats:
+        selected.append("stats")
     # Aucune étape demandée : on les lance toutes
     if not selected:
         selected = list(TrainingPipeline.STEPS)
