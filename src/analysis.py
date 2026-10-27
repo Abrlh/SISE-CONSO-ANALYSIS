@@ -260,6 +260,32 @@ def stats_conso(df):
     return out[colonnes]
 
 
+def stats_numeriques(df):
+    """Résumé statistique de chaque variable numérique (consommation, surface, hauteur sous
+    plafond, émissions de GES, coût) par département et origine (+ "Tous") : nombre de valeurs
+    renseignées, nombre de valeurs manquantes, moyenne, écart-type, minimum, percentiles
+    5/25/50/75/95 et maximum. Même principe que stats_conso, pour toutes les variables."""
+    colonnes = ["variable", DEPT, ORIGINE, "effectif", "nb_manquants", "moyenne", "ecart_type",
+                "minimum", "p05", "q1", "mediane", "q3", "p95", "maximum"]
+    variables = [v for v in COLONNES_CORRELATION if v in df.columns]
+    if not variables:
+        return _vide(colonnes)
+    base = _par_perimetre(_preparer(df, [COL_DEPT_SOURCE, ORIGINE] + variables))
+    morceaux = []
+    for v in variables:
+        g = base.groupby([DEPT, ORIGINE])[v]
+        t = g.agg(total="size", effectif="count", moyenne="mean", ecart_type="std",
+                  minimum="min", maximum="max")
+        t["nb_manquants"] = t.pop("total") - t["effectif"]
+        t = t.join(_quantiles(g, noms=QUANTILES.values())).reset_index()
+        t.insert(0, "variable", v)
+        morceaux.append(t)
+    out = pd.concat(morceaux, ignore_index=True)
+    chiffres = ["moyenne", "ecart_type", "minimum", "p05", "q1", "mediane", "q3", "p95", "maximum"]
+    out[chiffres] = out[chiffres].round(2)
+    return out[colonnes]
+
+
 # ---------------------------------------------------------------------------
 # Consommation et étiquettes selon les caractéristiques du logement
 # ---------------------------------------------------------------------------
@@ -504,6 +530,31 @@ def qualite_donnees(data):
         [DEPT, "pct_manquant", "colonne"], ascending=[True, False, True], ignore_index=True)
 
 
+def apercu_donnees(data):
+    """Taille des données nettoyées pour la page Contexte : nombre de lignes, de colonnes, et
+    nombre de colonnes numériques, de dates, de textes (et autres), par département (+ "Tous").
+    Prend {departement: DataFrame} (colonnes complètes), comme qualite_donnees. Pour "Tous",
+    une colonne présente dans plusieurs départements n'est comptée qu'une fois."""
+    colonnes = [DEPT, "nb_lignes", "nb_colonnes", "nb_numeriques", "nb_dates", "nb_texte"]
+
+    def ligne(nom, nb_lignes, types):
+        numeriques = sum(pd.api.types.is_numeric_dtype(t) and not pd.api.types.is_bool_dtype(t)
+                         for t in types)
+        dates = sum(pd.api.types.is_datetime64_any_dtype(t) for t in types)
+        return [nom, nb_lignes, len(types), numeriques, dates, len(types) - numeriques - dates]
+
+    if not data:
+        return _vide(colonnes)
+    lignes, tous_types = [], {}
+    for dept in sorted(data, key=str):
+        df = data[dept]
+        for c in df.columns:
+            tous_types.setdefault(c, df[c].dtype)
+        lignes.append(ligne(str(dept), len(df), list(df.dtypes)))
+    lignes.append(ligne(TOUS, sum(len(d) for d in data.values()), list(tous_types.values())))
+    return pd.DataFrame(lignes, columns=colonnes)
+
+
 # ---------------------------------------------------------------------------
 # Liste des analyses calculées par `train.py --stats`
 # ---------------------------------------------------------------------------
@@ -512,6 +563,7 @@ ANALYSES = {
     "repartition_etiquettes": repartition_etiquettes,
     "distribution_conso": distribution_conso,
     "stats_conso": stats_conso,
+    "stats_numeriques": stats_numeriques,
     "conso_par_modalite": conso_par_modalite,
     "etiquette_par_modalite": etiquette_par_modalite,
     "conso_par_etiquette": conso_par_etiquette,
@@ -534,7 +586,7 @@ class StatAnalyzer():
 
     def noms(self)-> list[str]:
         """Noms de toutes les analyses calculées par compute_all()."""
-        return list(ANALYSES) + ["qualite_donnees"]
+        return list(ANALYSES) + ["qualite_donnees", "apercu_donnees"]
 
     def compute_all(self, data:dict[str, pd.DataFrame])-> dict[str, pd.DataFrame]:
         """Calcule toutes les analyses.
@@ -557,4 +609,6 @@ class StatAnalyzer():
             resultats[nom] = analyse(df)
         print("    - qualite_donnees")
         resultats["qualite_donnees"] = qualite_donnees(data)
+        print("    - apercu_donnees")
+        resultats["apercu_donnees"] = apercu_donnees(data)
         return resultats

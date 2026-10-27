@@ -5,6 +5,7 @@
     "repartition_etiquettes",
     "distribution_conso",
     "stats_conso",
+    "stats_numeriques",
     "conso_par_modalite",
     "etiquette_par_modalite",
     "conso_par_etiquette",
@@ -16,7 +17,8 @@
     "communes",
     "echantillon_points",
     "logements",
-    "qualite_donnees"
+    "qualite_donnees",
+    "apercu_donnees"
   ],
-  "calcule_le": "2026-10-26T13:15:10+00:00"
+  "calcule_le": "2026-10-27T11:25:21+00:00"
 }

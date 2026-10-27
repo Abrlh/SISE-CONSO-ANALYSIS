@@ -16,6 +16,7 @@ from src.analysis import (
     ANALYSES,
     StatAnalyzer,
     _famille_energie,
+    apercu_donnees,
     communes,
     conso_par_etiquette,
     conso_par_modalite,
@@ -31,6 +32,7 @@ from src.analysis import (
     qualite_donnees,
     repartition_etiquettes,
     stats_conso,
+    stats_numeriques,
     table_logements,
 )
 
@@ -422,6 +424,83 @@ def test_qualite_donnees_colonne_absente_d_un_departement():
     assert ligne(q, departement="59", colonne="cout_total_5_usages")["pct_manquant"] == pytest.approx(100.0)
     assert ligne(q, departement="75", colonne="cout_total_5_usages")["presente"]
     assert ligne(q, departement="Tous", colonne="cout_total_5_usages")["pct_manquant"] == pytest.approx(50.0)
+
+
+# ---------------------------------------------------------------------------
+# Résumé des variables numériques
+# ---------------------------------------------------------------------------
+def test_stats_numeriques_surface(df):
+    s = stats_numeriques(df)
+    # surfaces : 25, 30, 45, 50, 60, 70, 80, 90
+    tous = ligne(s, variable="surface_habitable_logement", departement="Tous", origine="Tous")
+    assert tous["effectif"] == 8
+    assert tous["nb_manquants"] == 0
+    assert tous["moyenne"] == pytest.approx(56.25)
+    assert tous["mediane"] == pytest.approx(55.0)
+    assert tous["minimum"] == 25
+    assert tous["maximum"] == 90
+    # dept 75 : 25, 30, 45, 50
+    d75 = ligne(s, variable="surface_habitable_logement", departement="75", origine="Tous")
+    assert d75["moyenne"] == pytest.approx(37.5)
+    assert d75["mediane"] == pytest.approx(37.5)
+
+
+def test_stats_numeriques_contient_toutes_les_variables(df):
+    s = stats_numeriques(df)
+    assert set(s["variable"]) == {"conso_5_usages_par_m2_ep", "surface_habitable_logement",
+                                  "hauteur_sous_plafond", "emission_ges_5_usages_par_m2",
+                                  "cout_total_5_usages"}
+
+
+def test_stats_numeriques_compte_les_valeurs_manquantes(df):
+    df = df.copy()
+    df.loc[0, "surface_habitable_logement"] = None
+    tous = ligne(stats_numeriques(df), variable="surface_habitable_logement",
+                 departement="Tous", origine="Tous")
+    assert tous["effectif"] == 7
+    assert tous["nb_manquants"] == 1
+
+
+def test_stats_numeriques_sans_colonnes_numeriques_tableau_vide(df):
+    s = stats_numeriques(df[["code_departement_ban", "origine", "etiquette_dpe"]])
+    assert len(s) == 0
+    assert "mediane" in s.columns
+
+
+# ---------------------------------------------------------------------------
+# Aperçu des données (page Contexte)
+# ---------------------------------------------------------------------------
+def test_apercu_donnees_lignes_et_colonnes():
+    a = apercu_donnees(donnees())
+    tous = ligne(a, departement="Tous")
+    assert tous["nb_lignes"] == 8
+    assert tous["nb_colonnes"] == 18
+    assert ligne(a, departement="75")["nb_lignes"] == 4
+    assert ligne(a, departement="59")["nb_lignes"] == 4
+
+
+def test_apercu_donnees_types_de_colonnes():
+    tous = ligne(apercu_donnees(donnees()), departement="Tous")
+    # numériques : conso, surface, latitude, longitude, coût, GES, hauteur ; date : 1
+    assert tous["nb_numeriques"] == 7
+    assert tous["nb_dates"] == 1
+    assert tous["nb_texte"] == 10
+    assert tous["nb_numeriques"] + tous["nb_dates"] + tous["nb_texte"] == tous["nb_colonnes"]
+
+
+def test_apercu_donnees_colonne_absente_d_un_departement():
+    data = donnees()
+    data["59"] = data["59"].drop(columns="cout_total_5_usages")
+    a = apercu_donnees(data)
+    assert ligne(a, departement="59")["nb_colonnes"] == 17
+    assert ligne(a, departement="75")["nb_colonnes"] == 18
+    assert ligne(a, departement="Tous")["nb_colonnes"] == 18     # comptée une seule fois
+
+
+def test_apercu_donnees_sans_donnees_tableau_vide():
+    a = apercu_donnees({})
+    assert len(a) == 0
+    assert "nb_colonnes" in a.columns
 
 
 # ---------------------------------------------------------------------------
