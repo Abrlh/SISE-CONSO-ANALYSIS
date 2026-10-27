@@ -132,7 +132,7 @@ class TrainingPipeline():
         processed = self.__preprocessor.process(datasets)
         
         # on enregistre les données prétraitées dans data/processed/<snapid>/<departement>.parquet
-        self.__repository.save_processed(snapid, processed)
+        self.__repository.save_processed(snapid, processed, self.__preprocessor.rapport())
         return processed
 
     ##########################
@@ -149,7 +149,7 @@ class TrainingPipeline():
         """
         if processed is None:
             processed = self.__repository.load_processed(snapid)
-        stats = self.__analyzer.compute_all(processed)
+        stats = self.__analyzer.compute_all(processed, self.__repository.load_nettoyage(snapid))
         self.__repository.save_stats(snapid, stats)
         return stats
 

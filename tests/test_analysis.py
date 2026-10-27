@@ -17,6 +17,8 @@ from src.analysis import (
     StatAnalyzer,
     _famille_energie,
     apercu_donnees,
+    bilan_nettoyage,
+    colonnes_retirees,
     communes,
     conso_par_etiquette,
     conso_par_modalite,
@@ -504,6 +506,73 @@ def test_apercu_donnees_sans_donnees_tableau_vide():
 
 
 # ---------------------------------------------------------------------------
+# Bilan du nettoyage (page Contexte)
+# ---------------------------------------------------------------------------
+def rapport():
+    """Rapport tel qu'enregistré par le nettoyage (DataPreprocessor.rapport())."""
+    return {
+        "75": {"bilan": [["Données brutes", 100], ["Doublons supprimés", 90], ["Étiquettes A-G", 90],
+                         ["Surface 5-500 m²", 80]],
+               "colonnes_retirees": [["colonne_a", 95.5], ["colonne_b", 99.0]]},
+        "59": {"bilan": [["Données brutes", 50], ["Doublons supprimés", 50], ["Étiquettes A-G", 45],
+                         ["Surface 5-500 m²", 40]],
+               "colonnes_retirees": [["colonne_a", 85.0]]},
+    }
+
+
+def test_bilan_nettoyage_lignes_et_lignes_retirees_par_etape():
+    b = bilan_nettoyage(rapport())
+    assert ligne(b, departement="75", etape="Données brutes")["lignes_retirees"] == 0
+    assert ligne(b, departement="75", etape="Doublons supprimés")["lignes_retirees"] == 10
+    assert ligne(b, departement="75", etape="Surface 5-500 m²")["lignes"] == 80
+    assert ligne(b, departement="75", etape="Surface 5-500 m²")["lignes_retirees"] == 10
+    assert ligne(b, departement="59", etape="Étiquettes A-G")["lignes_retirees"] == 5
+
+
+def test_bilan_nettoyage_tous_additionne_les_departements():
+    b = bilan_nettoyage(rapport())
+    assert ligne(b, departement="Tous", etape="Données brutes")["lignes"] == 150
+    assert ligne(b, departement="Tous", etape="Doublons supprimés")["lignes_retirees"] == 10
+    assert ligne(b, departement="Tous", etape="Surface 5-500 m²")["lignes"] == 120
+    assert ligne(b, departement="Tous", etape="Surface 5-500 m²")["lignes_retirees"] == 15
+
+
+def test_bilan_nettoyage_garde_l_ordre_des_etapes():
+    b = bilan_nettoyage(rapport())
+    d75 = b[b["departement"] == "75"]
+    assert list(d75["etape"]) == ["Données brutes", "Doublons supprimés", "Étiquettes A-G",
+                                  "Surface 5-500 m²"]
+    assert list(d75["ordre"]) == [0, 1, 2, 3]
+
+
+def test_bilan_nettoyage_sans_rapport_tableau_vide():
+    for rien in (None, {}):
+        b = bilan_nettoyage(rien)
+        assert len(b) == 0
+        assert "lignes_retirees" in b.columns
+
+
+def test_colonnes_retirees_par_departement_triees_par_taux():
+    c = colonnes_retirees(rapport())
+    d75 = c[c["departement"] == "75"]
+    assert list(d75["colonne"]) == ["colonne_b", "colonne_a"]       # 99 % puis 95,5 %
+    assert ligne(c, departement="59", colonne="colonne_a")["pct_manquant"] == pytest.approx(85.0)
+    assert len(c) == 3
+
+
+def test_colonnes_retirees_sans_rapport_ou_sans_colonne_tableau_vide():
+    assert len(colonnes_retirees(None)) == 0
+    assert len(colonnes_retirees({"75": {"bilan": [], "colonnes_retirees": []}})) == 0
+    assert "pct_manquant" in colonnes_retirees(None).columns
+
+
+def test_compute_all_avec_rapport_de_nettoyage():
+    resultats = StatAnalyzer().compute_all(donnees(), rapport())
+    assert len(resultats["bilan_nettoyage"]) == 12                 # (2 départements + Tous) x 4 étapes
+    assert len(resultats["colonnes_retirees"]) == 3
+
+
+# ---------------------------------------------------------------------------
 # StatAnalyzer : l'ensemble
 # ---------------------------------------------------------------------------
 def test_compute_all_calcule_tout_et_les_analyses_ont_des_lignes():
@@ -511,7 +580,8 @@ def test_compute_all_calcule_tout_et_les_analyses_ont_des_lignes():
     resultats = analyzer.compute_all(donnees())
     assert set(resultats) == set(analyzer.noms())
     assert set(ANALYSES) <= set(resultats)
-    vides_attendus = {"communes"}                            # aucune commune n'atteint 30 logements
+    # communes : aucune commune n'atteint 30 logements ; les deux autres : pas de rapport de nettoyage
+    vides_attendus = {"communes", "bilan_nettoyage", "colonnes_retirees"}
     for nom, tableau in resultats.items():
         assert isinstance(tableau, pd.DataFrame), nom
         if nom not in vides_attendus:

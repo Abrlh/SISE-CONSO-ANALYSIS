@@ -200,6 +200,23 @@ class DataPreprocessor():
         self.bilans = {}   # {departement: DataFrame du bilan} après process()
         self.colonnes_retirees = {}   # {departement: DataFrame (colonne, % manquant)}
 
+
+    def rapport(self) -> dict:
+        """Bilan du dernier process(), sous une forme qui s'écrit en JSON :
+        {departement: {"bilan": [[étape, lignes], ...],
+                       "colonnes_retirees": [[colonne, % manquant], ...]}}
+        Il est enregistré à côté des données nettoyées (meta.json) pour que le calcul des
+        statistiques puisse le retrouver sans refaire le nettoyage."""
+        return {
+            str(d): {
+                "bilan": [[etape, int(n)] for etape, n in self.bilans[d]["lignes"].items()],
+                "colonnes_retirees": [[c, float(p)] for c, p
+                                      in self.colonnes_retirees[d]["pct_manquant"].items()],
+            }
+            for d in self.bilans
+        }
+
+
     def fusionner(self, datasets: dict) -> dict:
         """Fusionne les datasets de chaque département ; la colonne "origine"
         contient le nom du dataset (ex. "dpe_existants")."""

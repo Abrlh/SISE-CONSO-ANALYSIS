@@ -555,6 +555,43 @@ def apercu_donnees(data):
     return pd.DataFrame(lignes, columns=colonnes)
 
 
+def bilan_nettoyage(nettoyage):
+    """Nombre de lignes après chaque règle du nettoyage, par département (+ "Tous"), pour la
+    page Contexte : `lignes` après l'étape, `lignes_retirees` par cette étape. Prend le
+    rapport enregistré par le nettoyage ({departement: {"bilan": [[étape, lignes], ...]}})."""
+    colonnes = [DEPT, "ordre", "etape", "lignes", "lignes_retirees"]
+    morceaux = []
+    for dept, rapport in (nettoyage or {}).items():
+        etapes = rapport.get("bilan", [])
+        if etapes:
+            t = pd.DataFrame(etapes, columns=["etape", "lignes"])
+            t.insert(0, "ordre", range(len(t)))
+            t.insert(0, DEPT, str(dept))
+            morceaux.append(t)
+    if not morceaux:
+        return _vide(colonnes)
+    out = pd.concat(morceaux, ignore_index=True)
+    tous = out.groupby(["ordre", "etape"], as_index=False)["lignes"].sum()
+    tous.insert(0, DEPT, TOUS)
+    out = pd.concat([out, tous], ignore_index=True).sort_values([DEPT, "ordre"], ignore_index=True)
+    out["lignes_retirees"] = (out.groupby(DEPT)["lignes"].shift(1) - out["lignes"]).fillna(0).astype(int)
+    return out[colonnes]
+
+
+def colonnes_retirees(nettoyage):
+    """Colonnes retirées par le nettoyage parce qu'elles étaient trop vides, par département,
+    avec leur pourcentage de cases vides avant retrait (le seuil est SEUIL_MANQUANT dans
+    preprocessing.py). Prend le rapport enregistré par le nettoyage."""
+    colonnes = [DEPT, "colonne", "pct_manquant"]
+    lignes = [(str(dept), colonne, pct)
+              for dept, rapport in (nettoyage or {}).items()
+              for colonne, pct in rapport.get("colonnes_retirees", [])]
+    if not lignes:
+        return _vide(colonnes)
+    return pd.DataFrame(lignes, columns=colonnes).sort_values(
+        [DEPT, "pct_manquant", "colonne"], ascending=[True, False, True], ignore_index=True)
+
+
 # ---------------------------------------------------------------------------
 # Liste des analyses calculées par `train.py --stats`
 # ---------------------------------------------------------------------------
@@ -586,14 +623,16 @@ class StatAnalyzer():
 
     def noms(self)-> list[str]:
         """Noms de toutes les analyses calculées par compute_all()."""
-        return list(ANALYSES) + ["qualite_donnees", "apercu_donnees"]
+        return list(ANALYSES) + ["qualite_donnees", "apercu_donnees", "bilan_nettoyage", "colonnes_retirees"]
 
-    def compute_all(self, data:dict[str, pd.DataFrame])-> dict[str, pd.DataFrame]:
+    def compute_all(self, data:dict[str, pd.DataFrame], nettoyage:dict|None=None)-> dict[str, pd.DataFrame]:
         """Calcule toutes les analyses.
 
         Args:
             data: {departement: DataFrame propre}, tel que renvoyé par
                   DataRepository.load_processed()
+            nettoyage: rapport du nettoyage (DataPreprocessor.rapport()), tel que renvoyé par
+                  DataRepository.load_nettoyage() ; None si le snapshot n'en a pas
 
         Returns:
             {nom_analyse: DataFrame}, prêt pour DataRepository.save_stats()
@@ -611,4 +650,8 @@ class StatAnalyzer():
         resultats["qualite_donnees"] = qualite_donnees(data)
         print("    - apercu_donnees")
         resultats["apercu_donnees"] = apercu_donnees(data)
+        print("    - bilan_nettoyage")
+        resultats["bilan_nettoyage"] = bilan_nettoyage(nettoyage)
+        print("    - colonnes_retirees")
+        resultats["colonnes_retirees"] = colonnes_retirees(nettoyage)
         return resultats

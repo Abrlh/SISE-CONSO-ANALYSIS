@@ -117,8 +117,7 @@ class DataRepository():
                 df = self.__storage.load(path=f"{snapshot_id}/{departement}/{name}.parquet")
                 frames[departement][name] = df
         return frames
-
-    def save_processed(self, snapshot_id:str, data:dict[str, pd.DataFrame])-> None:
+    def save_processed(self, snapshot_id:str, data:dict[str, pd.DataFrame], nettoyage:dict|None=None)-> None:
         """Enregistre les données prétraitées d'un snapshot.
 
         Arborescence créée :
@@ -133,16 +132,22 @@ class DataRepository():
             data: {departement: DataFrame}
         """
 
-        
-
         processed_dir = self.__processed_root / snapshot_id
         processed_dir.mkdir(parents=True, exist_ok=True)
         (processed_dir / "meta.json").unlink(missing_ok=True)
         for departement, df in data.items():
             self.__processed_storage.save(df, path=f"{snapshot_id}/{departement}.parquet")
         meta = {"snapshot_id": snapshot_id, "departements": list(data)}
+        if nettoyage is not None:
+            meta["nettoyage"] = nettoyage
         (processed_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
+    def load_nettoyage(self, snapshot_id:str)-> dict:
+        """Rapport du nettoyage enregistré avec les données nettoyées ({} s'il n'y en a pas)."""
+        meta_path = self.__processed_root / snapshot_id / "meta.json"
+        if not meta_path.exists():
+            return {}
+        return json.loads(meta_path.read_text()).get("nettoyage", {})
 
     def load_processed(self, snapshot_id:str)-> dict[str, pd.DataFrame]:
         """Recharge les données prétraitées d'un snapshot.
