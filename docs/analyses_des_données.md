@@ -12,7 +12,7 @@ Le snapshot de référence contient environ 389 000 logements (3 départements, 
 
 On sépare donc deux temps :
 
-1. **Calcul (une fois par snapshot)** : `python -m src.train --snapshot <id> --stats` produit 16 petits tableaux, enregistrés sur disque.
+1. **Calcul (une fois par snapshot)** : `python -m src.train --snapshot <id> --stats` produit 20 petits tableaux, enregistrés sur disque.
 2. **Lecture (à chaque affichage)** : l'application lit ces tableaux et sélectionne des lignes. Elle ne calcule rien.
 
 Avantages :
@@ -28,6 +28,7 @@ data/raw/<id>/            téléchargement brut (API ADEME)             --load
       │
       ▼
 data/processed/<id>/      données nettoyées, un fichier par dépt      --preprocess
+      │                     + meta.json (dont le bilan du nettoyage)
       │
       ▼
 data/stats/<id>/          tableaux de statistiques + meta.json         --stats
@@ -52,17 +53,20 @@ Snapshot de référence utilisé pour ce document : `2026-10-12_132605` (départ
 - **Stockage** : `src/data/repository.py` (`DataRepository`)
   - `save_stats(snapshot_id, tableaux)` : écrit un fichier `<nom>.parquet` par tableau, puis **en dernier** `meta.json`.
   - `list_stats(snapshot_id)`, `load_stat(snapshot_id, nom)`, `list_stats_snapshots()`.
+  - `save_processed(..., nettoyage)` écrit le bilan du nettoyage dans le `meta.json` des données nettoyées ; `load_nettoyage(snapshot_id)` le relit (dictionnaire vide si le snapshot n'en a pas).
 - **Lecture** : `src/service.py` (`AppService.get_stat(nom)`), qui choisit automatiquement le snapshot le plus récent et garde les tableaux en mémoire.
 
 Un snapshot dont `meta.json` est absent est considéré comme incomplet et ignoré : un calcul interrompu ne peut donc jamais être affiché.
 
-`meta.json` contient l'identifiant du snapshot, la liste des tableaux et la date de calcul (UTC).
+`meta.json` des statistiques contient l'identifiant du snapshot, la liste des tableaux et la date de calcul (UTC).
+
+**Bilan du nettoyage.** `DataPreprocessor.rapport()` met le bilan du nettoyage (lignes après chaque règle, colonnes retirées) sous forme de dictionnaire ; l'étape `--preprocess` l'enregistre dans `data/processed/<id>/meta.json`, clé `nettoyage`. L'étape `--stats` le relit pour produire les tableaux `bilan_nettoyage` et `colonnes_retirees`, sans refaire le nettoyage. Un snapshot nettoyé avant l'ajout de cette clé n'a pas de bilan : ces deux tableaux sont alors vides, et il suffit de relancer `--preprocess` puis `--stats`.
 
 > `data/stats/` et `data/processed/` sont des fichiers générés : ils ne sont pas à versionner dans Git (voir le point ouvert en section 9).
 
 ## 4. Conventions communes à tous les tableaux
 
-**Une analyse = une fonction.** Chaque fonction reçoit les données nettoyées (tous départements réunis) et renvoie un petit tableau. Les fonctions sont listées dans le dictionnaire `ANALYSES` en bas de `analysis.py` : ajouter une analyse, c'est écrire la fonction et l'ajouter à ce dictionnaire, le reste (calcul, enregistrement) est automatique. Seule exception, `qualite_donnees`, qui a besoin des colonnes complètes de chaque département.
+**Une analyse = une fonction.** Chaque fonction reçoit les données nettoyées (tous départements réunis) et renvoie un petit tableau. Les fonctions sont listées dans le dictionnaire `ANALYSES` en bas de `analysis.py` : ajouter une analyse, c'est écrire la fonction et l'ajouter à ce dictionnaire, le reste (calcul, enregistrement) est automatique. Exceptions : `qualite_donnees` et `apercu_donnees`, qui ont besoin des colonnes complètes de chaque département, et `bilan_nettoyage` et `colonnes_retirees`, qui partent du rapport du nettoyage et non des logements.
 
 **Sous-totaux avec la valeur « Tous ».** Dans les colonnes `departement` et `origine`, la valeur `Tous` signifie « tous confondus ». Chaque tableau contient déjà toutes les combinaisons (par exemple département 75 + neufs, département « Tous » + existants, etc.). L'application n'a donc qu'à **choisir des lignes** ; aucun recalcul n'est nécessaire quand l'utilisateur change de filtre.
 
@@ -109,7 +113,10 @@ Les sept étiquettes sont toujours présentes (effectif 0 si nécessaire). Le po
 |---|---|---|---|
 | `distribution_conso` | Comment la consommation se répartit-elle ? | `departement`, `origine`, `borne_min`, `borne_max`, `effectif`, `pourcentage` | 600 × 6 |
 | `stats_conso` | Résumé statistique de la consommation | `departement`, `origine`, `effectif`, `moyenne`, `ecart_type`, `minimum`, `p05`, `q1`, `mediane`, `q3`, `p95`, `maximum` | 12 × 12 |
+| `stats_numeriques` | Même résumé pour les autres variables numériques (surface, hauteur sous plafond, GES, coût) | `variable`, `departement`, `origine`, `effectif`, `nb_manquants`, `moyenne`, `ecart_type`, `minimum`, `p05`, `q1`, `mediane`, `q3`, `p95`, `maximum` | 60 × 14 |
 | `conso_par_etiquette` | Quelle consommation par étiquette, selon l'énergie de chauffage ? (question du client) | `departement`, `origine`, `famille_energie`, `etiquette`, `effectif`, `moyenne`, `q1`, `mediane`, `q3` | 467 × 9 |
+
+`stats_numeriques` couvre la consommation, la surface, la hauteur sous plafond, les émissions de GES et le coût ; `nb_manquants` compte les cases vides. La hauteur sous plafond vaut presque toujours 2,5 m (quartiles et médiane identiques), probablement une valeur par défaut du DPE : elle apporte peu d'information.
 
 La consommation est `conso_5_usages_par_m2_ep` (kWh d'énergie primaire par m² et par an). L'histogramme utilise des tranches de 20 kWh/m²/an, de 0 à 1 000 (le plafond du nettoyage) ; toutes les tranches existent, même vides.
 
@@ -154,14 +161,21 @@ Le coût par m² est `cout_total_5_usages / surface_habitable_logement`, **dans 
 
 La position d'une commune est la **médiane** des coordonnées de ses logements. Les points hors de la France métropolitaine ont été retirés au nettoyage.
 
-### 6.7 Données et qualité
+### 6.7 Données, qualité et nettoyage (page Contexte)
 
 | Tableau | Question | Colonnes | Taille |
 |---|---|---|---|
 | `logements` | Table légère pour filtrer et exporter | 16 colonnes : département, origine, étiquette, consommation, surface, période, type de bâtiment, énergie et famille, tranche de surface, isolation de l'enveloppe, année, commune, code INSEE, latitude, longitude | 388 717 × 16 |
 | `qualite_donnees` | Quelle part de cases vides par colonne ? | `departement`, `colonne`, `type`, `pct_manquant`, `presente` | 640 × 5 |
+| `apercu_donnees` | Quelle est la taille des données nettoyées ? | `departement`, `nb_lignes`, `nb_colonnes`, `nb_numeriques`, `nb_dates`, `nb_texte` | 4 × 6 |
+| `bilan_nettoyage` | Combien de lignes retire chaque règle du nettoyage ? | `departement`, `ordre`, `etape`, `lignes`, `lignes_retirees` | 52 × 5 |
+| `colonnes_retirees` | Quelles colonnes ont été retirées car trop vides ? | `departement`, `colonne`, `pct_manquant` | variable |
 
-La table `logements` est la seule à contenir une ligne par logement ; les textes y sont stockés en type `category` et les nombres en `float32` pour limiter la mémoire. Pour `qualite_donnees`, une colonne retirée au nettoyage (trop vide) apparaît avec `presente = False` et compte pour 100 % de cases vides.
+La table `logements` est la seule à contenir une ligne par logement ; les textes y sont stockés en type `category` et les nombres en `float32` pour limiter la mémoire. `apercu_donnees` compte, pour « Tous », chaque colonne une seule fois même si elle existe dans plusieurs départements (d'où 160 colonnes pour « Tous » contre 159, 159 et 156 par département). Les colonnes sont réparties en numériques, dates et textes.
+
+`bilan_nettoyage` a une ligne par règle appliquée (13 règles) et par département, plus « Tous » (somme des départements) ; `lignes` est le nombre de lignes après la règle, `lignes_retirees` celles qu'elle a supprimées. Sur le snapshot de référence : 393 952 lignes brutes, 4 130 immeubles exclus, 708 lignes sans valeur clé, 170 surfaces hors 5-500 m², 197 consommations supérieures à 1 000 et 30 émissions supérieures à 1 000, soit 388 717 lignes finales. Aucun doublon de numéro de DPE n'a été trouvé. `colonnes_retirees` donne le pourcentage de cases vides **avant** retrait, que `qualite_donnees` ne peut pas donner (une colonne retirée y apparaît à 100 %).
+
+Pour `qualite_donnees`, une colonne retirée au nettoyage (trop vide) apparaît avec `presente = False` et compte pour 100 % de cases vides.
 
 ## 7. Choix méthodologiques et justifications
 
@@ -191,8 +205,9 @@ La table `logements` est la seule à contenir une ligne par logement ; les texte
 
 ## 9. Tests et maintenance
 
-- `tests/test_analysis.py` : une quarantaine de tests sur un jeu de **8 logements dont les résultats ont été calculés à la main**. Chaque tableau est vérifié (valeurs, sous-totaux « Tous », cas de colonnes manquantes, tableaux vides).
+- `tests/test_analysis.py` : une cinquantaine de tests sur un jeu de **8 logements dont les résultats ont été calculés à la main**. Le bilan du nettoyage est testé avec un rapport fictif de deux départements. Chaque tableau est vérifié (valeurs, sous-totaux « Tous », cas de colonnes manquantes, tableaux vides).
 - `tests/test_service.py` : lecture des statistiques via un faux dépôt (choix du snapshot le plus récent, mise en cache, copie des tableaux, message d'erreur clair si rien n'est calculé).
+- `tests/test_preprocessing.py` vérifie aussi que `rapport()` s'écrit en JSON et contient le bilan.
 - Lancer : `python -m pytest tests -q`.
 
 **Ajouter une analyse**
@@ -201,10 +216,9 @@ La table `logements` est la seule à contenir une ligne par logement ; les texte
 3. Ajouter un test sur le jeu de 8 logements.
 4. Relancer `python -m src.train --snapshot <id> --stats`.
 
-**Après un rafraîchissement des données** : relancer `--preprocess` puis `--stats` (ou la commande complète) ; l'application prend le snapshot le plus récent.
+**Après un rafraîchissement des données** : relancer `--preprocess` (qui enregistre aussi le bilan du nettoyage) puis `--stats` (ou la commande complète) ; l'application prend le snapshot le plus récent.
 
 **Points ouverts à décider en équipe**
 - Versionner ou non `data/stats/` (et retirer `data/processed/` du suivi Git).
 - Corriger la limite de l'échantillon temporel (requêtes par plage de dates ou tri aléatoire) ; cela demande un nouveau téléchargement.
 - Ajouter des tests statistiques (par exemple Kruskal-Wallis pour comparer la consommation entre groupes) si le rapport en a besoin.
-- Calculer un tableau du bilan du nettoyage (lignes avant et après chaque règle, colonnes retirées) pour le rendre disponible à l'application.
