@@ -13,7 +13,7 @@ import streamlit as st
 DOSSIER_PROCESSED = Path(__file__).resolve().parent.parent / "data" / "processed"
 
 # Snapshot à lire. Mettre None pour lire automatiquement le plus récent.
-SNAPSHOT_CHOISI = "2026-10-08_214716"
+SNAPSHOT_CHOISI = None
 
 
 def dernier_snapshot():

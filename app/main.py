@@ -8,6 +8,14 @@ Ce fichier configure la page, déclare les pages de l'application et affiche le 
 Chaque page est un script dans app/pages/. L'interface ne fait aucun calcul : elle lit et affiche.
 """
 
+import sys
+from pathlib import Path
+
+# Ajoute la racine du dépôt au chemin d'import pour pouvoir écrire "from src.service import AppService"
+RACINE = Path(__file__).resolve().parent.parent
+if str(RACINE) not in sys.path:
+    sys.path.insert(0, str(RACINE))
+
 import streamlit as st
 
 # Doit être le premier appel Streamlit du script

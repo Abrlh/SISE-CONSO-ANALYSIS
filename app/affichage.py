@@ -34,16 +34,48 @@ def nom_departement(code):
     return f"{NOMS_DEPARTEMENTS.get(code, code)} ({code})"
 
 
-def widgets_filtres(conteneur, departements, origines):
-    """Affiche les filtres dans le conteneur donné (st.sidebar ou st). Ils ne modifient encore rien."""
-    conteneur.selectbox(
+def liste_valeurs(tableau, colonne):
+    """Valeurs distinctes d'une colonne, triées, sans la valeur « Tous »."""
+    return sorted(v for v in tableau[colonne].astype(str).unique() if v != "Tous")
+
+
+def filtres_perimetre(conteneur, tableau_perimetres):
+    """Affiche les filtres Département et Origine, d'après un tableau qui a ces deux colonnes (kpi_globaux).
+
+    Renvoie (département, origine). La valeur « Tous » veut dire « tous confondus ».
+    """
+    departement = conteneur.selectbox(
         "Département",
-        ["Tous"] + departements,
+        ["Tous"] + liste_valeurs(tableau_perimetres, "departement"),
         format_func=lambda code: code if code == "Tous" else nom_departement(code),
     )
-    conteneur.radio("Origine du logement", ["Tous"] + origines)
-    conteneur.multiselect("Étiquettes DPE", ETIQUETTES, default=ETIQUETTES)
-    conteneur.slider("Surface habitable (m²)", 5, 500, (5, 500))
+    origine = conteneur.radio("Origine du logement", ["Tous"] + liste_valeurs(tableau_perimetres, "origine"))
+    return departement, origine
+
+
+def choisir(tableau, departement=None, origine=None):
+    """Sélectionne les lignes d'un tableau pour un département et/ou une origine. Aucun calcul."""
+    masque = tableau.index == tableau.index
+    if departement is not None and "departement" in tableau.columns:
+        masque = masque & (tableau["departement"].astype(str) == departement)
+    if origine is not None and "origine" in tableau.columns:
+        masque = masque & (tableau["origine"].astype(str) == origine)
+    return tableau[masque]
+
+
+def fmt_nombre(valeur, decimales=0):
+    """Met un nombre en forme à la française (388717 -> '388 717')."""
+    return f"{valeur:,.{decimales}f}".replace(",", " ")
+
+
+def legende_etiquettes():
+    """Légende des couleurs des étiquettes, en une ligne."""
+    elements = [
+        f"<span style='display:inline-block;width:12px;height:12px;border-radius:50%;"
+        f"background:{couleur};margin-right:4px'></span>{lettre}"
+        for lettre, couleur in zip(ETIQUETTES, COULEURS_ETIQUETTES)
+    ]
+    st.markdown("&nbsp;&nbsp;&nbsp;".join(elements), unsafe_allow_html=True)
 
 
 def a_venir(titre, detail="Ce graphique sera affiché avec les résultats préparés par le back end."):

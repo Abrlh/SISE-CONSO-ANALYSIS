@@ -40,5 +40,7 @@ with colonnes[2]:
         st.write("Saisir les caractéristiques d'un logement pour estimer son étiquette et sa consommation.")
         st.page_link("pages/prediction.py", label="Ouvrir la prédiction", icon=":material/online_prediction:")
 
-st.caption("Source des données : ADEME, DPE des logements existants et neufs. " \
-"Projet M2 SISE Présenté par: Clara FONTAINE Aissatou Lamarana BARRY Nicole NGEJEJE.")
+st.caption(
+    "Source des données : ADEME, DPE des logements existants et neufs." \
+    "Projet M2 SISE Présenté par: Clara FONTAINE Aissatou Lamarana BARRY Nicole NGEJEJE."
+)
