@@ -307,3 +307,18 @@ def test_preprocessor_sans_nettoyage_renvoie_seulement_la_fusion():
     datasets = {"75": {"dpe_existants": logements(3), "dpe_neufs": logements(2)}}
     out = DataPreprocessor(appliquer_nettoyage=False).process(datasets)
     assert len(out["75"]) == 5
+
+
+def test_preprocessor_rapport_s_ecrit_en_json_et_contient_le_bilan():
+    import json
+    p = DataPreprocessor()
+    p.process({"75": {"dpe_existants": logements(10, colonne_vide=[None] * 10),
+                      "dpe_neufs": logements(0)}})
+    r = p.rapport()
+    json.dumps(r)                                               # doit être écrivable
+    assert r["75"]["bilan"][0] == ["Données brutes", 10]
+    assert r["75"]["colonnes_retirees"] == [["colonne_vide", 100.0]]
+
+
+def test_preprocessor_rapport_vide_avant_process():
+    assert DataPreprocessor().rapport() == {}

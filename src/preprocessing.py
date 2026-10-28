@@ -20,9 +20,12 @@ import pandas as pd
 # Colonnes
 # ---------------------------------------------------------------------------
 # Pas de liste blanche : toutes les colonnes sont gardées, sauf celles qui sont trop
-# vides (voir SEUIL_MANQUANT). Cette liste n'est qu'un AVERTISSEMENT : ces colonnes
-# contiennent déjà la réponse ou sont des résultats de calcul du DPE. Elles sont
-# utiles pour l'analyse, mais à EXCLURE des variables d'entrée des modèles.
+# vides (voir SEUIL_MANQUANT).
+# AVERTISSEMENT : ces 9 colonnes (et, plus largement, toutes celles qui commencent par
+# conso_, cout_, emission_ges, etiquette_, deperditions, besoin, ubat) contiennent la
+# réponse ou sont des résultats du calcul du DPE. Utiles pour l'analyse, mais à
+# EXCLURE des variables d'entrée des modèles.
+
 COLONNES_ANALYSE = [
     "etiquette_ges", "emission_ges_5_usages_par_m2", "conso_5_usages_ep",
     "conso_chauffage_ep", "conso_ecs_ep", "conso_eclairage_ep",
@@ -196,6 +199,23 @@ class DataPreprocessor():
         self.appliquer_nettoyage = appliquer_nettoyage
         self.bilans = {}   # {departement: DataFrame du bilan} après process()
         self.colonnes_retirees = {}   # {departement: DataFrame (colonne, % manquant)}
+
+
+    def rapport(self) -> dict:
+        """Bilan du dernier process(), sous une forme qui s'écrit en JSON :
+        {departement: {"bilan": [[étape, lignes], ...],
+                       "colonnes_retirees": [[colonne, % manquant], ...]}}
+        Il est enregistré à côté des données nettoyées (meta.json) pour que le calcul des
+        statistiques puisse le retrouver sans refaire le nettoyage."""
+        return {
+            str(d): {
+                "bilan": [[etape, int(n)] for etape, n in self.bilans[d]["lignes"].items()],
+                "colonnes_retirees": [[c, float(p)] for c, p
+                                      in self.colonnes_retirees[d]["pct_manquant"].items()],
+            }
+            for d in self.bilans
+        }
+
 
     def fusionner(self, datasets: dict) -> dict:
         """Fusionne les datasets de chaque département ; la colonne "origine"
