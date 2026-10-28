@@ -5,12 +5,20 @@ Cette page ne calcule rien : elle lit les fichiers nettoyés et les affiche.
 
 import streamlit as st
 
-from affichage import widgets_filtres
+from affichage import nom_departement, widgets_filtres
 from lecture import charger_ou_arreter
 
 st.title("Contexte")
 
 donnees, meta = charger_ou_arreter()
+snapshot = meta.get("snapshot_id", "inconnu")
+annee, mois, jour = (snapshot.split("_")[0].split("-") + ["", "", ""])[:3]
+date_telechargement = f"{jour}/{mois}/{annee}" if annee else "date inconnue"
+noms = [nom_departement(str(code)) for code in sorted(meta.get("departements", []))]
+st.caption(
+    f"Données du snapshot {snapshot} (téléchargé le {date_telechargement}) "
+    f"· départements : {', '.join(noms) if noms else 'non précisés'}"
+)
 
 # ---- Présentation du jeu de données
 st.subheader("Présentation du jeu de données")

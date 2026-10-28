@@ -18,6 +18,8 @@ widgets_filtres(st.sidebar, [str(d) for d in meta.get("departements", [])], sort
 st.sidebar.caption("Les filtres seront actifs quand les résultats du back end seront branchés.")
 
 # ---- Exports (branchés plus tard)
+# Nombre de logements lus dans les fichiers (le décompte selon les filtres viendra avec le back end)
+st.caption(f"{len(donnees):,} logements chargés. Le décompte selon les filtres choisis sera affiché avec les résultats du back end.".replace(",", " "))
 colonnes_export = st.columns(2)
 colonnes_export[0].button("Exporter les données filtrées (CSV)", icon=":material/download:", disabled=True)
 colonnes_export[1].button("Exporter un graphique (PNG)", icon=":material/image:", disabled=True)

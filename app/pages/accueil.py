@@ -7,6 +7,7 @@ from affichage import ILLUSTRATION_SVG
 gauche, droite = st.columns([3, 2])
 
 with gauche:
+    st.caption("GREENTECH SOLUTIONS POUR ENEDIS")
     st.title("Comprendre et prédire la performance énergétique des logements")
     st.write(
         "Cette application explore les diagnostics de performance énergétique (DPE) publiés par l'ADEME "
