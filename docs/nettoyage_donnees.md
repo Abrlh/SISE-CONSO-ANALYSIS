@@ -171,7 +171,7 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 | Étape | Commande | Rôle |
 |---|---|---|
 | 1. Récupérer | `python -m src.refresh` | télécharge les données brutes dans `data/raw/<id>/` |
-| 2. Auditer | `python -m src.audit_colonnes` | repère les colonnes apparues ou disparues |
+| 2. Auditer | `python -m src.train --snapshot <id> --audit` | repère les colonnes apparues ou disparues |
 | 3. Nettoyer | `python -m src.train --snapshot <id> --preprocess` | écrit `data/processed/<id>/` |
 | 4. Contrôler | (voir ci-dessous) | bilan des lignes et colonnes retirées |
 | 5. Noter | éditer `docs/colonnes_retenues.csv` | les colonnes nouvelles ne seront plus signalées |
@@ -182,7 +182,7 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 Attention : cette commande lance un vrai téléchargement (`--help` ne l'en empêche pas).
 
 ### Étape 2 : auditer les colonnes (à lancer avant de nettoyer)
-`python -m src.audit_colonnes` (ou `--snapshot <id>`) compare les colonnes du snapshot à celles déjà examinées dans `docs/colonnes_retenues.csv`. Il **ne modifie rien**. Il affiche :
+`python -m src.train --audit` (ou `--snapshot <id> --audit`) compare les colonnes du snapshot à celles déjà examinées dans `docs/colonnes_retenues.csv`. Il **ne modifie rien**. Il affiche :
 - **Colonnes disparues** : doit afficher *aucune*. Sinon, une analyse ou le nettoyage peut échouer ; si c'est une colonne indispensable, le nettoyage s'arrête avec un message d'erreur.
 - **Colonnes nouvelles**, avec leur type, leur taux de manquants, des exemples de valeurs et une indication : « **ATTENTION** » (famille qui contient la réponse, à ne pas utiliser en entrée d'un modèle), « **Sera retirée par le nettoyage** » (vide à plus de 80 %), ou « **Entrera dans les données propres** ».
 Le résultat est aussi écrit dans `docs/audit_<snapshot>.csv`. Sur le snapshot de référence, il n'y a aucune colonne nouvelle ni disparue.
@@ -208,7 +208,7 @@ Ajouter les colonnes nouvelles à `docs/colonnes_retenues.csv`, mettre à jour c
 | Règles de nettoyage sur les colonnes connues | oui, par l'étape `preprocess` |
 | Colonne indispensable absente | oui : arrêt avec un message clair |
 | Colonne non indispensable disparue | les règles qui en dépendent sont ignorées ; **signalé par l'audit (étape 2)** |
-| Nouvelle colonne de l'API | conservée automatiquement si elle n'est pas trop vide ; **repérée par l'audit (étape 2, à lancer à la main)** |
+| Nouvelle colonne de l'API | conservée automatiquement si elle n'est pas trop vide ; **repérée par l'audit (étape 2, lancée par `python -m src.train`)** |
 | Colonne qui contient la réponse | **non filtrée** ; signalée par l'audit seulement |
 | Seuils adaptés aux nouvelles données | **non** : à vérifier avec le bilan (étape 4) |
 | Doublons entre ancien et nouveau snapshot | **non** : la déduplication ne travaille que sur un snapshot |

@@ -7,12 +7,11 @@ entre donc automatiquement dans les données propres. Cet audit sert à voir ce 
 apparu ou disparu, quelles nouvelles colonnes seront retirées (trop vides), et lesquelles
 semblent contenir la réponse (à ne pas utiliser en entrée d'un modèle).
 
-Usage :
-    python -m src.audit_colonnes                      # dernier snapshot
-    python -m src.audit_colonnes --snapshot 2026-10-18_101500
+Lancé comme étape "audit" du pipeline (src/train.py) :
+    python -m src.train --audit                       # dernier snapshot
+    python -m src.train --audit --snapshot 2026-10-18_101500
 Sortie : affichage + docs/audit_<snapshot>.csv
 """
-import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -88,28 +87,14 @@ def auditer(df, chemin_reference=CSV_REFERENCE):
     return desc, disparues
 
 
-def main():
-    from .data.repository import DataRepository
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--snapshot", help="id du snapshot (défaut : le plus récent)")
-    args = p.parse_args()
-    repo = DataRepository()
-    snap = args.snapshot or repo.latest_snapshot()
-    donnees = repo.load(snap)
-    tout = pd.concat([d for dep in donnees.values() for d in dep.values()], ignore_index=True)
-    desc, disparues = auditer(tout)
+def afficher(snap, tout, desc, disparues, sortie=None):
+    """Affiche le résultat de auditer() ; sortie : chemin du CSV écrit (None si rien écrit)."""
     print(f"Snapshot {snap} : {len(tout)} lignes, {tout.shape[1]} colonnes")
     print(f"\nColonnes DISPARUES (déjà vues et gardées) : {disparues or 'aucune'}")
     print(f"\nColonnes NOUVELLES : {len(desc)}")
     if len(desc):
         with pd.option_context("display.max_colwidth", 70, "display.width", 200):
             print(desc.to_string(index=False))
-        sortie = RACINE / "docs" / f"audit_{snap}.csv"
-        desc.to_csv(sortie, index=False)
         print(f"\nÉcrit : {sortie}")
         print("Les colonnes nouvelles non trop vides entrent automatiquement dans les données "
               "propres. Les noter dans docs/colonnes_retenues.csv pour qu'elles ne soient plus signalées.")
-
-
-if __name__ == "__main__":
-    main()
