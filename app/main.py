@@ -17,6 +17,7 @@ if str(RACINE) not in sys.path:
     sys.path.insert(0, str(RACINE))
 
 import streamlit as st
+from style import colorer_menu
 
 # Doit être le premier appel Streamlit du script
 st.set_page_config(
@@ -33,5 +34,8 @@ pages = [
     st.Page("pages/prediction.py", title="Prédiction", icon=":material/online_prediction:"),
 ]
 
-# Affiche le menu de navigation et exécute la page choisie
-st.navigation(pages).run()
+# Affiche le menu de navigation, colore la page choisie, puis exécute la page
+page = st.navigation(pages)
+colorer_menu(page.title)
+page.run()
+   

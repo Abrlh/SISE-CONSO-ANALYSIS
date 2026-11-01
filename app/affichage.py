@@ -10,6 +10,8 @@ COULEURS_ETIQUETTES = ["#319834", "#33cc31", "#cbfc34", "#fbfe06", "#fccc05", "#
 
 # Noms des départements du projet
 NOMS_DEPARTEMENTS = {"59": "Nord", "69": "Rhône", "75": "Paris"}
+# Noms lisibles des origines des logements (affichage seulement)
+NOMS_ORIGINES = {"dpe_existants": "Logements existants", "dpe_neufs": "Logements neufs"}
 
 # Illustration de la page d'accueil : une maison et l'échelle des étiquettes
 ILLUSTRATION_SVG = """
@@ -28,6 +30,49 @@ ILLUSTRATION_SVG = """
 </svg>
 """
 
+NOMS_VARIABLES_NUMERIQUES = {
+    "conso_5_usages_par_m2_ep": "Consommation d'énergie de 5 usages par m² (kWh/m²/an)",
+    "surface_habitable_logement": "Surface habitable du logement (m²)",
+    "hauteur_sous_plafond": "Hauteur sous plafond (m)",
+    "emission_ges_5_usages_par_m2": "Émissions de gaz à effet de serre de 5 usages par m² (kg CO₂e/m²/an)",
+    "cout_total_5_usages": "Coût total de l'énergie de 5 usages (€/an)",
+}
+
+# Noms courts des variables numériques, pour les axes des graphiques
+NOMS_VARIABLES_COURTS = {
+    "conso_5_usages_par_m2_ep": "Consommation d'énergie<br>(5 usages)",
+    "surface_habitable_logement": "Surface<br>habitable",
+    "hauteur_sous_plafond": "Hauteur sous<br>plafond",
+    "emission_ges_5_usages_par_m2": "Émissions de GES<br>(5 usages)",
+    "cout_total_5_usages": "Coût de l'énergie<br>(5 usages)",
+}
+
+NOMS_COLONNES_STATS = {
+    "variable": "Variable", "effectif": "Effectif", "nb_manquants": "Valeurs manquantes",
+    "moyenne": "Moyenne", "ecart_type": "Écart-type", "minimum": "Minimum", "p05": "Percentile 5",
+    "q1": "Quartile 1", "mediane": "Médiane", "q3": "Quartile 3", "p95": "Percentile 95", "maximum": "Maximum",
+}
+
+
+# Titres lisibles des colonnes de l'aperçu des données 
+NOMS_COLONNES_APERCU = {
+    "departement": "Département",
+    "origine": "Origine",
+    "etiquette_dpe": "Étiquette DPE",
+    "conso_5_usages_par_m2_ep": NOMS_VARIABLES_NUMERIQUES["conso_5_usages_par_m2_ep"],
+    "surface_habitable_logement": NOMS_VARIABLES_NUMERIQUES["surface_habitable_logement"],
+    "periode_construction": "Période de construction",
+    "type_batiment": "Type de bâtiment",
+    "type_energie_principale_chauffage": "Énergie principale de chauffage",
+    "famille_energie": "Famille d'énergie",
+    "tranche_surface": "Tranche de surface",
+    "qualite_isolation_enveloppe": "Qualité de l'isolation",
+    "annee_reception": "Année de réception",
+    "code_insee_ban": "Code INSEE",
+    "nom_commune_ban": "Commune",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+}
 
 def nom_departement(code):
     """Nom lisible d'un département, ex. '59' -> 'Nord (59)'."""
@@ -51,7 +96,6 @@ def filtres_perimetre(conteneur, tableau_perimetres):
     )
     origine = conteneur.radio("Origine du logement", ["Tous"] + liste_valeurs(tableau_perimetres, "origine"))
     return departement, origine
-
 
 def choisir(tableau, departement=None, origine=None):
     """Sélectionne les lignes d'un tableau pour un département et/ou une origine. Aucun calcul."""
