@@ -12,6 +12,10 @@ class ModelRegistry():
         pass
 
     def save(model: BaseModel, metadata: Any)-> str:
+        """
+        Save a model and its metadata to a file.
+        """
+        
         pass
 
     def load()-> BaseModel:
