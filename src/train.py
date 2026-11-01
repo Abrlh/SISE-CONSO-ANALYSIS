@@ -1,6 +1,9 @@
 import argparse
 
+import pandas as pd
+
 from .data.repository import DataRepository
+from .audit_colonnes import auditer, afficher
 from .preprocessing import DataPreprocessor
 from .analysis import StatAnalyzer
 from .models.registry import ModelRegistry
@@ -22,7 +25,7 @@ class TrainingPipeline():
         pass
 
     # Étapes disponibles, toujours exécutées dans cet ordre
-    STEPS = ("load", "preprocess", "stats")
+    STEPS = ("load", "audit", "preprocess", "stats")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """
@@ -44,9 +47,15 @@ class TrainingPipeline():
         if "load" in steps:
             print(f"=== Étape 1 : chargement des données brutes du snapshot {snapid} ===")
             datasets = self.load_raw(snapid)
+        if "audit" in steps:
+            print(f"=== Étape 1 bis : audit des colonnes du snapshot {snapid} ===")
+            # chargées ici pour que preprocess les réutilise sans relire le disque
+            if datasets is None:
+                datasets = self.load_raw(snapid)
+            self.audit(snapid, datasets)
         if "preprocess" in steps:
             print(f"=== Étape 2 : prétraitement des données brutes du snapshot {snapid} ===")
-            self.preprocess(snapid, datasets)
+            processed = self.preprocess(snapid, datasets)
         if "stats" in steps:
             print(f"=== Étape 3 : calcul des statistiques du snapshot {snapid} ===")
             self.stats(snapid, processed)
@@ -85,6 +94,27 @@ class TrainingPipeline():
     def load_raw(self, snapid:str)-> dict:
         """Charge les données brutes du snapshot : {departement: {nom_dataset: DataFrame}}."""
         return self.__repository.load(snapid)
+
+
+    ##########################
+    # 1 bis audit des colonnes
+    def audit(self, snapid:str, datasets:dict|None=None)-> tuple:
+        """Repère les colonnes nouvelles ou disparues du snapshot (voir src/audit_colonnes.py).
+
+        Args:
+            snapid: id du snapshot
+            datasets: données brutes déjà chargées par load_raw(), None pour les charger ici
+
+        Returns:
+            (nouvelles : DataFrame, disparues : liste)
+        """
+        if datasets is None:
+            datasets = self.load_raw(snapid)
+        tout = pd.concat([d for dep in datasets.values() for d in dep.values()], ignore_index=True)
+        desc, disparues = auditer(tout)
+        sortie = self.__repository.save_audit(snapid, desc) if len(desc) else None
+        afficher(snapid, tout, desc, disparues, sortie)
+        return desc, disparues
 
 
     ##########################
@@ -172,6 +202,8 @@ if __name__ == "__main__":
     steps = parser.add_argument_group("étapes (par défaut : toutes)")
     steps.add_argument("--load", action="store_true",
                        help="charge les données brutes (avec --refresh : télécharge un nouveau snapshot)")
+    steps.add_argument("--audit", action="store_true",
+                       help="repère les colonnes nouvelles ou disparues du snapshot (écrit docs/audit_<snapshot>.csv)")
     steps.add_argument("--preprocess", action="store_true",
                        help="prétraite les données brutes et enregistre le résultat dans data/processed/")
     steps.add_argument("--stats", action="store_true",
@@ -185,6 +217,8 @@ if __name__ == "__main__":
     selected = []
     if args.load:
         selected.append("load")
+    if args.audit:
+        selected.append("audit")
     if args.preprocess:
         selected.append("preprocess")
     if args.stats:

@@ -189,6 +189,21 @@ class DataRepository():
         (stats_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
 
+    def save_audit(self, snapshot_id:str, audit:pd.DataFrame)-> Path:
+        """Enregistre l'audit des colonnes d'un snapshot dans docs/audit_<snapshot_id>.csv.
+
+        Args:
+            snapshot_id: id du snapshot audité
+            audit: description des colonnes nouvelles (renvoyée par audit_colonnes.auditer)
+
+        Returns:
+            chemin du fichier écrit
+        """
+        sortie = self.__root.parent.parent / "docs" / f"audit_{snapshot_id}.csv"
+        audit.to_csv(sortie, index=False)
+        return sortie
+
+
     def list_stats(self, snapshot_id:str)-> list[str]:
         """Renvoie les noms des statistiques disponibles pour un snapshot.
 
