@@ -1,12 +1,15 @@
 import argparse
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from .data.repository import DataRepository
 from .audit_colonnes import auditer, afficher
 from .preprocessing import DataPreprocessor
 from .analysis import StatAnalyzer
 from .models.registry import ModelRegistry
+from .models.classification import ClassificationModel
+from .models.features import preparer_xy
 
 
 class TrainingPipeline():
@@ -20,12 +23,12 @@ class TrainingPipeline():
         self.__preprocessor:DataPreprocessor = DataPreprocessor()
         self.__repository:DataRepository = DataRepository()
         self.__analyzer:StatAnalyzer = StatAnalyzer()
-        self.__registry:ModelRegistry = None
+        self.__registry:ModelRegistry = ModelRegistry()
         tasks_config:dict
         pass
 
     # Étapes disponibles, toujours exécutées dans cet ordre
-    STEPS = ("load", "audit", "preprocess", "stats")
+    STEPS = ("load", "audit", "preprocess", "stats", "train")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """
@@ -59,10 +62,9 @@ class TrainingPipeline():
         if "stats" in steps:
             print(f"=== Étape 3 : calcul des statistiques du snapshot {snapid} ===")
             self.stats(snapid, processed)
-
-        # 3 train model (snap id)
-
-        # 4 evaluate model (snap id)
+        if "train" in steps:
+            print(f"=== Étape 4 : entraînement et évaluation des modèles du snapshot {snapid} ===")
+            self.train(snapid, processed)
 
         # adapt task config
 
@@ -183,6 +185,44 @@ class TrainingPipeline():
         self.__repository.save_stats(snapid, stats)
         return stats
 
+    ##########################
+    # 4 entraînement et évaluation (un modèle par département)
+    CIBLE_CLASSIFICATION = "etiquette_dpe"
+
+    def train(self, snapid:str, processed:dict|None=None)-> dict:
+        """Entraîne un modèle de classification par département, l'évalue et l'enregistre
+        dans models/<snapid>/classification/<departement>/.
+
+        Args:
+            snapid: id du snapshot
+            processed: données propres déjà chargées, None pour les relire sur le disque
+
+        Returns:
+            {departement: métriques sur le jeu de test}
+        """
+        if processed is None:
+            processed = self.__repository.load_processed(snapid)
+        resultats = {}
+        for departement, df in processed.items():
+            print(f"    - Département {departement} : {len(df)} lignes")
+            X, y = preparer_xy(df, self.CIBLE_CLASSIFICATION)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+            modele = ClassificationModel()
+            modele.train(X_train, y_train)
+            metriques = modele.evaluate(X_test, y_test)
+            print(f"      k retenu : {modele.meilleurs_params['selection__k']}, "
+                  f"f1 macro : {metriques['f1_macro']:.3f}, accuracy : {metriques['accuracy']:.3f}, "
+                  f"à une classe près : {metriques['a_une_classe_pres']:.3f}")
+            self.__registry.save("classification", departement, snapid, modele, {
+                "cible": self.CIBLE_CLASSIFICATION,
+                "colonnes": list(X.columns),
+                "meilleurs_params": modele.meilleurs_params,
+                "nb_lignes_train": len(X_train), "nb_lignes_test": len(X_test),
+                "metriques_test": metriques,
+            })
+            resultats[departement] = metriques
+        return resultats
+
 
 if __name__ == "__main__":
     # Options de la ligne de commande, ex. : python -m src.train --refresh
@@ -208,6 +248,8 @@ if __name__ == "__main__":
                        help="prétraite les données brutes et enregistre le résultat dans data/processed/")
     steps.add_argument("--stats", action="store_true",
                         help="calcule les statistiques pré-calculées pour l'application et les enregistre dans data/stats/")
+    steps.add_argument("--train", action="store_true",
+                       help="entraîne un modèle de classification par département et l'enregistre dans models/")
     
     
     
@@ -223,6 +265,8 @@ if __name__ == "__main__":
         selected.append("preprocess")
     if args.stats:
         selected.append("stats")
+    if args.train:
+        selected.append("train")
     # Aucune étape demandée : on les lance toutes
     if not selected:
         selected = list(TrainingPipeline.STEPS)

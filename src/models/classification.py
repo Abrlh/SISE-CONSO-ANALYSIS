@@ -3,13 +3,18 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import SelectKBest, VarianceThreshold
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, classification_report, f1_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 class ClassificationModel(BaseModel):
+
+    GRILLE_K = [20, 50, "all"]
+
+
     """Prédit l'étiquette DPE (A à G), même pipeline que le notebook 03_ML."""
     def __init__(self):
         super().__init__()
@@ -28,11 +33,17 @@ class ClassificationModel(BaseModel):
         self.model = Pipeline([
             ("preprocess", preprocess),
             ("variance", VarianceThreshold()),
-            ("model", HistGradientBoostingClassifier(random_state=42)),
+            ("selection", SelectKBest()), 
+            ("model", HistGradientBoostingClassifier(max_leaf_nodes=63, random_state=42)),
         ])
+        self.meilleurs_params:dict = {}
+
 
     def train(self, X, y):
-        self.model.fit(X, y)
+        search = GridSearchCV(self.model, {"selection__k": self.GRILLE_K}, cv=2, scoring="f1_macro")
+        search.fit(X, y)
+        self.model = search.best_estimator_
+        self.meilleurs_params = search.best_params_
 
     def predict(self, X)-> np.ndarray:
         return self.model.predict(X)

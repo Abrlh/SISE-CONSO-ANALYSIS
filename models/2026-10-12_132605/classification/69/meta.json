@@ -1,0 +1,142 @@
+{
+  "snapshot_id": "2026-10-12_132605",
+  "tache": "classification",
+  "departement": "69",
+  "modele": "ClassificationModel",
+  "sklearn_version": "1.9.1",
+  "entraine_le": "2026-11-02T09:39:59+00:00",
+  "cible": "etiquette_dpe",
+  "colonnes": [
+    "configuration_installation_chauffage_n1",
+    "type_generateur_n1_ecs_n1",
+    "deperditions_murs",
+    "ventilation_posterieure_2012",
+    "presence_brasseur_air",
+    "qualite_isolation_menuiseries",
+    "qualite_isolation_plancher_bas",
+    "isolation_toiture",
+    "qualite_isolation_enveloppe",
+    "type_energie_n1",
+    "type_energie_n2",
+    "deperditions_planchers_bas",
+    "surface_ventilee",
+    "nombre_niveau_immeuble",
+    "deperditions_enveloppe",
+    "type_ventilation",
+    "volume_stockage_generateur_n1_ecs_n1",
+    "surface_chauffee_installation_chauffage_n1",
+    "type_energie_principale_ecs",
+    "apport_solaire_saison_chauffe",
+    "nombre_appartement",
+    "deperditions_renouvellement_air",
+    "surface_habitable_desservie_par_installation_ecs_n1",
+    "production_electricite_pv_kwhep_par_an",
+    "nombre_niveau_logement",
+    "surface_habitable_logement",
+    "type_installation_ecs_n1",
+    "apport_interne_saison_froide",
+    "qualite_isolation_plancher_haut_comble_perdu",
+    "apport_interne_saison_chauffe",
+    "apport_solaire_saison_froide",
+    "type_generateur_n1_installation_n1",
+    "nombre_logements_desservis_par_installation_ecs_n1",
+    "type_emetteur_installation_chauffage_n1",
+    "configuration_installation_ecs_n1",
+    "classe_inertie_batiment",
+    "deperditions_ponts_thermiques",
+    "hauteur_sous_plafond",
+    "annee_construction",
+    "type_batiment",
+    "periode_construction",
+    "protection_solaire_exterieure",
+    "deperditions_baies_vitrees",
+    "type_energie_generateur_n1_ecs_n1",
+    "ubat_w_par_m2_k",
+    "type_installation_chauffage_n1",
+    "logement_traversant",
+    "categorie_enr",
+    "deperditions_planchers_hauts",
+    "zone_climatique",
+    "usage_generateur_n1_installation_n1",
+    "qualite_isolation_murs",
+    "type_installation_solaire_n1",
+    "classe_altitude",
+    "type_energie_principale_chauffage",
+    "indicateur_confort_ete",
+    "inertie_lourde",
+    "deperditions_portes",
+    "type_energie_generateur_n1_installation_n1",
+    "usage_generateur_n1_ecs_n1",
+    "surface_habitable_immeuble",
+    "type_installation_chauffage",
+    "type_installation_ecs",
+    "numero_etage_appartement"
+  ],
+  "meilleurs_params": {
+    "selection__k": "all"
+  },
+  "nb_lignes_train": 99872,
+  "nb_lignes_test": 42803,
+  "metriques_test": {
+    "f1_macro": 0.7965738492129483,
+    "accuracy": 0.8444034296661449,
+    "a_une_classe_pres": 0.9939957479615915,
+    "rapport": {
+      "A": {
+        "precision": 0.934654300168634,
+        "recall": 0.9218295218295218,
+        "f1-score": 0.928197613564999,
+        "support": 2405.0
+      },
+      "B": {
+        "precision": 0.8654678654678655,
+        "recall": 0.7026223303595567,
+        "f1-score": 0.7755893763055804,
+        "support": 3699.0
+      },
+      "C": {
+        "precision": 0.8980086669418077,
+        "recall": 0.9330510291595198,
+        "f1-score": 0.9151945320715037,
+        "support": 18656.0
+      },
+      "D": {
+        "precision": 0.8050271069492361,
+        "recall": 0.8216297786720322,
+        "f1-score": 0.813243714214588,
+        "support": 9940.0
+      },
+      "E": {
+        "precision": 0.7295159163684309,
+        "recall": 0.7495645442229534,
+        "f1-score": 0.7394043528064147,
+        "support": 5167.0
+      },
+      "F": {
+        "precision": 0.6650366748166259,
+        "recall": 0.582441113490364,
+        "f1-score": 0.6210045662100456,
+        "support": 1868.0
+      },
+      "G": {
+        "precision": 0.8301886792452831,
+        "recall": 0.7415730337078652,
+        "f1-score": 0.7833827893175074,
+        "support": 1068.0
+      },
+      "accuracy": 0.8444034296661449,
+      "macro avg": {
+        "precision": 0.8182713157082692,
+        "recall": 0.7789587644916877,
+        "f1-score": 0.7965738492129483,
+        "support": 42803.0
+      },
+      "weighted avg": {
+        "precision": 0.8434634749358707,
+        "recall": 0.8444034296661449,
+        "f1-score": 0.8428363365376107,
+        "support": 42803.0
+      }
+    }
+  }
+}
