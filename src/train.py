@@ -9,7 +9,8 @@ from .preprocessing import DataPreprocessor
 from .analysis import StatAnalyzer
 from .models.registry import ModelRegistry
 from .models.classification import ClassificationModel
-from .models.features import preparer_xy
+from .models.regression import RegressionModel
+from .models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, preparer_xy
 
 
 class TrainingPipeline():
@@ -101,22 +102,25 @@ class TrainingPipeline():
     ##########################
     # 1 bis audit des colonnes
     def audit(self, snapid:str, datasets:dict|None=None)-> tuple:
-        """Repère les colonnes nouvelles ou disparues du snapshot (voir src/audit_colonnes.py).
+        """Contrôle les colonnes du snapshot : colonnes utilisées par le code absentes, colonnes
+        nouvelles ou disparues par rapport au snapshot précédent (voir src/audit_colonnes.py).
 
         Args:
             snapid: id du snapshot
             datasets: données brutes déjà chargées par load_raw(), None pour les charger ici
 
         Returns:
-            (nouvelles : DataFrame, disparues : liste)
+            (manquantes : {colonne: [usages]}, nouvelles : DataFrame, disparues : liste)
         """
         if datasets is None:
             datasets = self.load_raw(snapid)
         tout = pd.concat([d for dep in datasets.values() for d in dep.values()], ignore_index=True)
-        desc, disparues = auditer(tout)
+        precedent = self.__repository.snapshot_precedent(snapid)
+        colonnes_precedentes = self.__repository.colonnes(precedent) if precedent else None
+        manquantes, desc, disparues = auditer(tout, colonnes_precedentes)
         sortie = self.__repository.save_audit(snapid, desc) if len(desc) else None
-        afficher(snapid, tout, desc, disparues, sortie)
-        return desc, disparues
+        afficher(snapid, tout, manquantes, desc, disparues, precedent, sortie)
+        return manquantes, desc, disparues
 
 
     ##########################
@@ -186,41 +190,44 @@ class TrainingPipeline():
         return stats
 
     ##########################
-    # 4 entraînement et évaluation (un modèle par département)
-    CIBLE_CLASSIFICATION = "etiquette_dpe"
+    # 4 entraînement et évaluation (un modèle par tâche et par département)
+    # {tâche: (classe du modèle, colonne à prédire)}
+    TACHES = {"classification": (ClassificationModel, CIBLE_CLASSIFICATION),
+              "regression": (RegressionModel, CIBLE_REGRESSION)}
 
     def train(self, snapid:str, processed:dict|None=None)-> dict:
-        """Entraîne un modèle de classification par département, l'évalue et l'enregistre
-        dans models/<snapid>/classification/<departement>/.
+        """Entraîne un modèle par tâche (TACHES) et par département, l'évalue et l'enregistre
+        dans models/<snapid>/<tache>/<departement>/.
 
         Args:
             snapid: id du snapshot
             processed: données propres déjà chargées, None pour les relire sur le disque
 
         Returns:
-            {departement: métriques sur le jeu de test}
+            {(tache, departement): métriques sur le jeu de test}
         """
         if processed is None:
             processed = self.__repository.load_processed(snapid)
         resultats = {}
         for departement, df in processed.items():
             print(f"    - Département {departement} : {len(df)} lignes")
-            X, y = preparer_xy(df, self.CIBLE_CLASSIFICATION)
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-            modele = ClassificationModel()
-            modele.train(X_train, y_train)
-            metriques = modele.evaluate(X_test, y_test)
-            print(f"      k retenu : {modele.meilleurs_params['selection__k']}, "
-                  f"f1 macro : {metriques['f1_macro']:.3f}, accuracy : {metriques['accuracy']:.3f}, "
-                  f"à une classe près : {metriques['a_une_classe_pres']:.3f}")
-            self.__registry.save("classification", departement, snapid, modele, {
-                "cible": self.CIBLE_CLASSIFICATION,
-                "colonnes": list(X.columns),
-                "meilleurs_params": modele.meilleurs_params,
-                "nb_lignes_train": len(X_train), "nb_lignes_test": len(X_test),
-                "metriques_test": metriques,
-            })
-            resultats[departement] = metriques
+            # même découpage pour les deux tâches : les mêmes logements servent de test
+            train_idx, test_idx = train_test_split(df.index, test_size=0.3, random_state=42)
+            for tache, (classe, cible) in self.TACHES.items():
+                X, y = preparer_xy(df, cible)
+                modele = classe()
+                modele.train(X.loc[train_idx], y.loc[train_idx])
+                metriques = modele.evaluate(X.loc[test_idx], y.loc[test_idx])
+                scores = ", ".join(f"{k} : {v:.3f}" for k, v in metriques.items() if k != "rapport")
+                print(f"      {tache} : {scores}" + (f" ({modele.meilleurs_params})" if modele.meilleurs_params else ""))
+                self.__registry.save(tache, departement, snapid, modele, {
+                    "cible": cible,
+                    "colonnes": list(X.columns),
+                    "meilleurs_params": modele.meilleurs_params,
+                    "nb_lignes_train": len(train_idx), "nb_lignes_test": len(test_idx),
+                    "metriques_test": metriques,
+                })
+                resultats[(tache, departement)] = metriques
         return resultats
 
 
@@ -249,7 +256,7 @@ if __name__ == "__main__":
     steps.add_argument("--stats", action="store_true",
                         help="calcule les statistiques pré-calculées pour l'application et les enregistre dans data/stats/")
     steps.add_argument("--train", action="store_true",
-                       help="entraîne un modèle de classification par département et l'enregistre dans models/")
+                       help="entraîne les modèles (classification et régression) par département et les enregistre dans models/")
     
     
     

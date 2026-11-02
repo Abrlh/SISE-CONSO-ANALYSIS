@@ -36,7 +36,6 @@ class ClassificationModel(BaseModel):
             ("selection", SelectKBest()), 
             ("model", HistGradientBoostingClassifier(max_leaf_nodes=63, random_state=42)),
         ])
-        self.meilleurs_params:dict = {}
 
 
     def train(self, X, y):

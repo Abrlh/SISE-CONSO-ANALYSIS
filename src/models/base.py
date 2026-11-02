@@ -5,7 +5,8 @@ import pandas as pd
 
 class BaseModel(ABC):
     def __init__(self):
-        pass
+        # hyperparamètres choisis pendant train() (ex. k de la sélection), notés dans meta.json
+        self.meilleurs_params:dict = {}
 
     @abstractmethod
     def train(self, X:pd.DataFrame,Y:pd.Series)->None:

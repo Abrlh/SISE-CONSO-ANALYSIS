@@ -9,23 +9,27 @@ import pandas as pd
 import pytest
 
 from src.models.classification import ClassificationModel
-from src.models.features import preparer_xy
+from src.models.features import VARIABLES_FORMULAIRE, preparer_xy
+from src.models.regression import RegressionModel
 from src.models.registry import ModelRegistry
+from src.preprocessing import ColonnesManquantesError
 from src.service import AppService
 
 
 def donnees(n=120):
     rng = np.random.default_rng(0)
     surface = rng.uniform(20, 150, n)
-    return pd.DataFrame({
-        "surface_habitable_logement": surface,
-        "type_batiment": rng.choice(["maison", "appartement"], n),
-        "numero_dpe": [f"id{i}" for i in range(n)],                # identifiant : doit être retiré
-        "conso_5_usages_par_m2_ep": surface * 2,                    # fuite : doit être retirée
-        "deperditions_murs": surface * 0.5,                         # calcul DPE : doit être retirée
-        "qualite_isolation_murs": rng.choice(["bonne", "insuffisante"], n),   # du formulaire : gardée
-        "etiquette_dpe": np.where(surface < 60, "C", np.where(surface < 100, "D", "E")),
-    })
+    # variables du formulaire : valeurs quelconques, seule la surface explique l'étiquette
+    df = pd.DataFrame({v: rng.choice(["a", "b"], n) for v in VARIABLES_FORMULAIRE})
+    df["surface_habitable_logement"] = surface
+    df["annee_construction"] = rng.integers(1900, 2020, n).astype(float)
+    return df.assign(
+        numero_dpe=[f"id{i}" for i in range(n)],                    # identifiant : exclu
+        conso_5_usages_par_m2_ep=surface * 2,                       # fuite : exclue
+        conso_5_usages_par_m2_ef=300 - surface,                     # cible de la régression
+        deperditions_murs=surface * 0.5,                            # calcul DPE : exclue
+        etiquette_dpe=np.where(surface < 60, "C", np.where(surface < 100, "D", "E")),
+    )
 
 
 @pytest.fixture(scope="module")
@@ -39,8 +43,35 @@ def modele():
 def test_preparer_xy_ne_garde_que_les_variables_du_formulaire():
     # cible, identifiant, fuite et variable de calcul exclues ; ordre de VARIABLES_FORMULAIRE
     X, y = preparer_xy(donnees(), "etiquette_dpe")
-    assert list(X.columns) == ["surface_habitable_logement", "type_batiment", "qualite_isolation_murs"]
+    assert list(X.columns) == VARIABLES_FORMULAIRE
     assert y.name == "etiquette_dpe"
+
+
+def test_preparer_xy_bloque_si_une_variable_manque():
+    # ex. l'API a renommé type_energie_n1 : l'entraînement doit s'arrêter, pas continuer sans
+    df = donnees().rename(columns={"type_energie_n1": "type_energie_principale_n1"})
+    with pytest.raises(ColonnesManquantesError) as erreur:
+        preparer_xy(df, "etiquette_dpe")
+    assert erreur.value.colonnes == ["type_energie_n1"]
+
+
+def test_meme_erreur_au_nettoyage_et_aux_modeles():
+    from src.preprocessing import verifier_colonnes_obligatoires
+    with pytest.raises(ColonnesManquantesError) as erreur:
+        verifier_colonnes_obligatoires(donnees().drop(columns="numero_dpe"))
+    assert erreur.value.colonnes == ["numero_dpe"]
+
+
+def test_regression_entraine_predit_et_evalue():
+    X, y = preparer_xy(donnees(), "conso_5_usages_par_m2_ef")
+    assert list(X.columns) == VARIABLES_FORMULAIRE      # mêmes variables que la classification
+    m = RegressionModel()
+    m.train(X, y)
+    assert m.predict(X).shape == (len(X),)
+    metriques = m.evaluate(X, y)
+    assert set(metriques) == {"r2", "mae", "rmse"}
+    assert metriques["r2"] > 0.5                        # la surface explique la cible
+    assert m.meilleurs_params == {}                     # pas de recherche d'hyperparamètres
 
 
 def test_train_choisit_k(modele):

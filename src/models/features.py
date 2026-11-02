@@ -1,9 +1,9 @@
-"""
-Les modèles ne sont entraînés que sur les variables du formulaire de l'application : le score mesuré
-au test est celui que le formulaire obtiendra. Mêmes variables pour la classification et la régression.
-Les préfixes sont utilisés par l'audit des colonnes (src/audit_colonnes.py) : une seule liste.
-"""
 import pandas as pd
+
+from ..preprocessing import verifier_colonnes
+
+CIBLE_CLASSIFICATION = "etiquette_dpe"
+CIBLE_REGRESSION = "conso_5_usages_par_m2_ef"
 
 PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "besoin", "etiquette_", "production_", "indicateur_")
 
@@ -27,7 +27,10 @@ VARIABLES_FORMULAIRE = BASE_FORMULAIRE + ISOLATION_PERCUE
 
 
 def preparer_xy(df:pd.DataFrame, cible:str)-> tuple[pd.DataFrame, pd.Series]:
-    """Sépare les variables d'entrée X (variables du formulaire présentes dans df) et la cible y."""
-    y = df[cible]
-    X = df[[c for c in VARIABLES_FORMULAIRE if c in df.columns]]
-    return X, y
+    """Sépare les variables d'entrée X (variables du formulaire) et la cible y.
+
+    Raises:
+        ColonnesManquantesError: une variable du formulaire ou la cible manque (comme au nettoyage)
+    """
+    verifier_colonnes(df, VARIABLES_FORMULAIRE + [cible], "Variables du formulaire ou cible")
+    return df[VARIABLES_FORMULAIRE], df[cible]
