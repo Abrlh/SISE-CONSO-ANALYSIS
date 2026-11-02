@@ -23,7 +23,7 @@ def donnees(n=120):
         "numero_dpe": [f"id{i}" for i in range(n)],                # identifiant : doit être retiré
         "conso_5_usages_par_m2_ep": surface * 2,                    # fuite : doit être retirée
         "deperditions_murs": surface * 0.5,                         # calcul DPE : doit être retirée
-        "qualite_isolation_murs": rng.choice(["bonne", "insuffisante"], n),   # gardée
+        "qualite_isolation_murs": rng.choice(["bonne", "insuffisante"], n),   # du formulaire : gardée
         "etiquette_dpe": np.where(surface < 60, "C", np.where(surface < 100, "D", "E")),
     })
 
@@ -36,7 +36,8 @@ def modele():
     return m, X
 
 
-def test_preparer_xy_retire_cible_fuites_et_identifiants():
+def test_preparer_xy_ne_garde_que_les_variables_du_formulaire():
+    # cible, identifiant, fuite et variable de calcul exclues ; ordre de VARIABLES_FORMULAIRE
     X, y = preparer_xy(donnees(), "etiquette_dpe")
     assert list(X.columns) == ["surface_habitable_logement", "type_batiment", "qualite_isolation_murs"]
     assert y.name == "etiquette_dpe"

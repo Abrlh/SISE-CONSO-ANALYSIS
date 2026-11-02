@@ -1,41 +1,33 @@
 """
-Choix des colonnes d'entrée des modèles (repris de la cellule 1.1.3 du notebook 03_ML).
-Les mêmes colonnes sont retirées pour la classification et la régression.
-Les préfixes sont aussi utilisés par l'audit des colonnes (src/audit_colonnes.py) : une seule liste.
+Les modèles ne sont entraînés que sur les variables du formulaire de l'application : le score mesuré
+au test est celui que le formulaire obtiendra. Mêmes variables pour la classification et la régression.
+Les préfixes sont utilisés par l'audit des colonnes (src/audit_colonnes.py) : une seule liste.
 """
 import pandas as pd
 
-# sorties du calcul DPE : les garder revient à donner la réponse au modèle
 PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "besoin", "etiquette_", "production_", "indicateur_")
-# résultats intermédiaires du calcul DPE : inconnus d'un particulier au moment de prédire
+
 PREFIXES_CALCUL = ("deperditions", "ubat", "apport_")
-# identifiants : une valeur (presque) unique par ligne
-ID_LIST = ["numero_dpe", "_id", "_i", "_rand", "identifiant_ban", "id_rnb"]
-# adresses et localisation : on prédit à partir du logement, pas de son emplacement
-LOCALISATION_LIST = ["adresse_ban", "adresse_brut", "adresse_complete_brut", "complement_adresse_batiment",
-                     "complement_adresse_logement", "nom_rue_ban", "numero_voie_ban",
-                     "code_postal_ban", "code_postal_brut", "code_insee_ban", "nom_commune_ban", "nom_commune_brut",
-                     "code_departement_ban", "code_region_ban", "coordonnee_cartographique_x_ban",
-                     "coordonnee_cartographique_y_ban", "latitude", "longitude", "score_ban", "statut_geocodage"]
-# informations sur le diagnostic lui-même, pas sur le logement
-INFO_DPE_LIST = ["modele_dpe", "version_dpe", "methode_application_dpe", "origine", "provenance_id_rnb",
-                 "appartement_non_visite"]
-# dates du diagnostic (l'âge du logement reste dans annee_construction / periode_construction)
-DATE_LIST = ["date_etablissement_dpe", "date_reception_dpe", "date_fin_validite_dpe",
-             "date_visite_diagnostiqueur", "date_derniere_modification_dpe"]
 
+BASE_FORMULAIRE = [
+    "surface_habitable_logement", "annee_construction", "type_batiment",
+    "zone_climatique", "classe_altitude",
+    "nombre_niveau_logement", "numero_etage_appartement",
+    "type_energie_n1", "type_energie_n2", "type_generateur_n1_installation_n1",
+    "type_emetteur_installation_chauffage_n1",
+    "type_installation_ecs", "type_generateur_n1_ecs_n1", "type_ventilation",
+]
 
-def colonnes_a_retirer(df:pd.DataFrame)-> list[str]:
-    """Colonnes de df qui ne doivent pas servir d'entrée à un modèle."""
-    fuite = [c for c in df.columns if c.startswith(PREFIXES_FUITE + PREFIXES_CALCUL)]
-    # descriptions en texte libre, redondantes avec les colonnes type_*
-    description = [c for c in df.columns if c.startswith("description_")]
-    liste = fuite + ID_LIST + LOCALISATION_LIST + description + INFO_DPE_LIST + DATE_LIST
-    return [c for c in liste if c in df.columns]
+ISOLATION_PERCUE = [
+    "qualite_isolation_enveloppe", "qualite_isolation_murs",
+    "qualite_isolation_plancher_haut_comble_perdu", "qualite_isolation_plancher_bas",
+    "qualite_isolation_menuiseries", "isolation_toiture",
+]
+VARIABLES_FORMULAIRE = BASE_FORMULAIRE + ISOLATION_PERCUE
 
 
 def preparer_xy(df:pd.DataFrame, cible:str)-> tuple[pd.DataFrame, pd.Series]:
-    """Sépare les variables d'entrée X et la cible y (la cible est aussi retirée de X)."""
+    """Sépare les variables d'entrée X (variables du formulaire présentes dans df) et la cible y."""
     y = df[cible]
-    X = df.drop(columns=list(dict.fromkeys(colonnes_a_retirer(df) + [cible])))
+    X = df[[c for c in VARIABLES_FORMULAIRE if c in df.columns]]
     return X, y
