@@ -22,6 +22,8 @@ def donnees(n=120):
         "type_batiment": rng.choice(["maison", "appartement"], n),
         "numero_dpe": [f"id{i}" for i in range(n)],                # identifiant : doit être retiré
         "conso_5_usages_par_m2_ep": surface * 2,                    # fuite : doit être retirée
+        "deperditions_murs": surface * 0.5,                         # calcul DPE : doit être retirée
+        "qualite_isolation_murs": rng.choice(["bonne", "insuffisante"], n),   # gardée
         "etiquette_dpe": np.where(surface < 60, "C", np.where(surface < 100, "D", "E")),
     })
 
@@ -36,7 +38,7 @@ def modele():
 
 def test_preparer_xy_retire_cible_fuites_et_identifiants():
     X, y = preparer_xy(donnees(), "etiquette_dpe")
-    assert list(X.columns) == ["surface_habitable_logement", "type_batiment"]
+    assert list(X.columns) == ["surface_habitable_logement", "type_batiment", "qualite_isolation_murs"]
     assert y.name == "etiquette_dpe"
 
 

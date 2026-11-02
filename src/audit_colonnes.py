@@ -17,6 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from .preprocessing import SEUIL_MANQUANT
+from .models.features import PREFIXES_FUITE, PREFIXES_CALCUL
 
 RACINE = Path(__file__).resolve().parent.parent
 
@@ -24,9 +25,8 @@ RACINE = Path(__file__).resolve().parent.parent
 # SEUIL_MANQUANT est celui du nettoyage (src/preprocessing.py).
 SEUIL_CORRELATION = 0.9   # quasi-identique à la consommation : fuite probable
 
-# Familles de colonnes qui contiennent (ou reflètent) la réponse : fuite probable
-PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "etiquette_", "deperditions",
-                  "besoin", "ubat", "apport_", "production_", "indicateur_")
+# Familles de colonnes qui contiennent (ou reflètent) la réponse : PREFIXES_FUITE et PREFIXES_CALCUL,
+# définis dans src/models/features.py (les mêmes listes servent à retirer ces colonnes des modèles)
 CIBLE = "conso_5_usages_par_m2_ep"
 CSV_REFERENCE = RACINE / "docs" / "colonnes_retenues.csv"
 
@@ -59,7 +59,7 @@ def decrire(serie, cible=None):
         corr = num.corr(pd.to_numeric(cible, errors="coerce"))
     ligne["corr_cible"] = None if corr is None or pd.isna(corr) else round(float(corr), 2)
 
-    if nom.startswith(PREFIXES_FUITE):
+    if nom.startswith(PREFIXES_FUITE + PREFIXES_CALCUL):
         ligne["suggestion"] = "ATTENTION : famille qui contient la réponse (pas en entrée d'un modèle)"
     elif corr is not None and abs(corr) >= SEUIL_CORRELATION:
         ligne["suggestion"] = "ATTENTION : quasi identique à la cible (fuite probable)"

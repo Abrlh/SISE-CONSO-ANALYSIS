@@ -1,11 +1,14 @@
 """
 Choix des colonnes d'entrée des modèles (repris de la cellule 1.1.3 du notebook 03_ML).
 Les mêmes colonnes sont retirées pour la classification et la régression.
+Les préfixes sont aussi utilisés par l'audit des colonnes (src/audit_colonnes.py) : une seule liste.
 """
 import pandas as pd
 
 # sorties du calcul DPE : les garder revient à donner la réponse au modèle
-PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "besoin_", "etiquette_")
+PREFIXES_FUITE = ("conso_", "cout_", "emission_ges", "besoin", "etiquette_", "production_", "indicateur_")
+# résultats intermédiaires du calcul DPE : inconnus d'un particulier au moment de prédire
+PREFIXES_CALCUL = ("deperditions", "ubat", "apport_")
 # identifiants : une valeur (presque) unique par ligne
 ID_LIST = ["numero_dpe", "_id", "_i", "_rand", "identifiant_ban", "id_rnb"]
 # adresses et localisation : on prédit à partir du logement, pas de son emplacement
@@ -24,7 +27,7 @@ DATE_LIST = ["date_etablissement_dpe", "date_reception_dpe", "date_fin_validite_
 
 def colonnes_a_retirer(df:pd.DataFrame)-> list[str]:
     """Colonnes de df qui ne doivent pas servir d'entrée à un modèle."""
-    fuite = [c for c in df.columns if c.startswith(PREFIXES_FUITE)]
+    fuite = [c for c in df.columns if c.startswith(PREFIXES_FUITE + PREFIXES_CALCUL)]
     # descriptions en texte libre, redondantes avec les colonnes type_*
     description = [c for c in df.columns if c.startswith("description_")]
     liste = fuite + ID_LIST + LOCALISATION_LIST + description + INFO_DPE_LIST + DATE_LIST
