@@ -83,9 +83,11 @@ def metriques(y, y_pred)-> dict:
     """Scores de classification à partir des étiquettes vraies et prédites."""
     # écart en nombre de classes entre la vraie étiquette et la prédiction (A et C -> 2)
     ecart = np.abs(pd.Series(y).map(ord).to_numpy() - pd.Series(y_pred).map(ord).to_numpy())
+    # zero_division=0 : une étiquette jamais prédite (cas normal de la référence naïve) a une précision de 0,
+    # sans avertissement ; pour le vrai modèle, le tableau par_etiquette le montre (précision à 0)
     return {
-        "f1_macro": f1_score(y, y_pred, average="macro"),
+        "f1_macro": f1_score(y, y_pred, average="macro", zero_division=0),
         "accuracy": accuracy_score(y, y_pred),
         "a_une_classe_pres": (ecart <= 1).mean(),
-        "rapport": classification_report(y, y_pred, output_dict=True),
+        "rapport": classification_report(y, y_pred, output_dict=True, zero_division=0),
     }
