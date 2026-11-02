@@ -220,13 +220,15 @@ class TrainingPipeline():
                 metriques = modele.evaluate(X.loc[test_idx], y.loc[test_idx])
                 scores = ", ".join(f"{k} : {v:.3f}" for k, v in metriques.items() if k != "rapport")
                 print(f"      {tache} : {scores}" + (f" ({modele.meilleurs_params})" if modele.meilleurs_params else ""))
+                # données de performance pour le front (scores, matrice de confusion, importance...)
+                evaluation = modele.tableaux_evaluation(X.loc[test_idx], y.loc[test_idx], y.loc[train_idx])
                 self.__registry.save(tache, departement, snapid, modele, {
                     "cible": cible,
                     "colonnes": list(X.columns),
                     "meilleurs_params": modele.meilleurs_params,
                     "nb_lignes_train": len(train_idx), "nb_lignes_test": len(test_idx),
                     "metriques_test": metriques,
-                })
+                }, evaluation)
                 resultats[(tache, departement)] = metriques
         return resultats
 

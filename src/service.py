@@ -16,6 +16,7 @@ class AppService():
         self.__analyzer:StatAnalyzer = StatAnalyzer()
         self.__registry:ModelRegistry = registry if registry is not None else ModelRegistry()
         self.__cache_modeles:dict = {}          # {(tache, departement): modèle}, chargé une seule fois
+        self.__cache_evaluation:dict = {}       # {(tache, departement, nom): DataFrame}
         self.__snapshot_stats:str|None = None   # snapshot dont on affiche les statistiques
         self.__cache_stats:dict = {}            # {(snapshot, nom): DataFrame}, évite de relire le disque
         pass
@@ -67,5 +68,18 @@ class AppService():
             self.info_modele(tache, departement)   # erreur explicite si le modèle n'existe pas
             self.__cache_modeles[cle] = self.__registry.load(tache, departement)
         return self.__cache_modeles[cle].predict(X)
+
+    def liste_evaluation(self, tache:str, departement:str)-> list[str]:
+        """Noms des tableaux de performance du modèle (ex. "scores", "matrice_confusion"...)."""
+        return self.info_modele(tache, departement).get("evaluation", [])
+
+    def evaluation_modele(self, tache:str, departement:str, nom:str)-> pd.DataFrame:
+        """Tableau de performance du modèle le plus récent, prêt à tracer ou à afficher
+        (une copie, comme get_stat)."""
+        cle = (tache, departement, nom)
+        if cle not in self.__cache_evaluation:
+            self.info_modele(tache, departement)   # erreur explicite si le modèle n'existe pas
+            self.__cache_evaluation[cle] = self.__registry.load_evaluation(tache, departement, nom)
+        return self.__cache_evaluation[cle].copy()
 
     

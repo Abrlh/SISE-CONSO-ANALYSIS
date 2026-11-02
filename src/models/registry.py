@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import pandas as pd
 import sklearn
 
 from .base import BaseModel
@@ -16,6 +17,7 @@ class ModelRegistry():
 
     Arborescence :
         models/<snapshot_id>/<tache>/<departement>/model.joblib
+        models/<snapshot_id>/<tache>/<departement>/evaluation/<nom>.parquet   (données de performance pour le front)
         models/<snapshot_id>/<tache>/<departement>/meta.json   (écrit en dernier)
 
     Un dossier sans meta.json correspond à un enregistrement interrompu et est ignoré.
@@ -28,7 +30,8 @@ class ModelRegistry():
         self.__root = Path(root) if root is not None else Path(__file__).resolve().parent.parent.parent / "models"
         pass
 
-    def save(self, tache:str, departement:str, snapid:str, model:BaseModel, metadata:dict[str, Any])-> Path:
+    def save(self, tache:str, departement:str, snapid:str, model:BaseModel, metadata:dict[str, Any],
+             evaluation:dict[str, pd.DataFrame]|None=None)-> Path:
         """
         Save a model and its metadata to a file.
 
@@ -38,6 +41,7 @@ class ModelRegistry():
             snapid: id du snapshot sur lequel le modèle a été entraîné
             model: modèle entraîné (objet entier : predict() et evaluate() restent disponibles au chargement)
             metadata: informations à garder dans meta.json (cible, colonnes, métriques...)
+            evaluation: {nom: DataFrame} de model.tableaux_evaluation(), écrits dans evaluation/<nom>.parquet
 
         Returns:
             dossier du modèle
@@ -46,9 +50,14 @@ class ModelRegistry():
         dossier.mkdir(parents=True, exist_ok=True)
         (dossier / "meta.json").unlink(missing_ok=True)
         joblib.dump(model, dossier / "model.joblib")
+        evaluation = evaluation or {}
+        (dossier / "evaluation").mkdir(exist_ok=True)
+        for nom, df in evaluation.items():
+            df.to_parquet(dossier / "evaluation" / f"{nom}.parquet", index=False)
         meta = {"snapshot_id": snapid, "tache": tache, "departement": departement,
                 "modele": type(model).__name__, "sklearn_version": sklearn.__version__,
                 "entraine_le": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "evaluation": list(evaluation),
                 **metadata}
         # default=float : les scores scikit-learn peuvent être des types numpy
         (dossier / "meta.json").write_text(json.dumps(meta, indent=2, default=float))
@@ -75,6 +84,18 @@ class ModelRegistry():
                                         f"Lancez : python -m src.train --train")
             snapid = snapshots[-1]
         return json.loads((self.__root / snapid / tache / departement / "meta.json").read_text())
+
+    def load_evaluation(self, tache:str, departement:str, nom:str, snapid:str|None=None)-> pd.DataFrame:
+        """Relit un tableau de performance (ex. "scores", "matrice_confusion"), du snapshot le plus récent par défaut.
+
+        Raises:
+            KeyError: tableau inconnu pour ce modèle (le message liste ceux disponibles)
+        """
+        meta = self.load_meta(tache, departement, snapid)
+        if nom not in meta.get("evaluation", []):
+            raise KeyError(f"Tableau {nom!r} absent pour {tache} {departement}. "
+                           f"Disponibles : {meta.get('evaluation', [])}")
+        return pd.read_parquet(self.__root / meta["snapshot_id"] / tache / departement / "evaluation" / f"{nom}.parquet")
 
     def list_snapshots(self, tache:str, departement:str)-> list[str]:
         """Id des snapshots qui ont un modèle complet pour cette tâche et ce département, du plus ancien au plus récent."""

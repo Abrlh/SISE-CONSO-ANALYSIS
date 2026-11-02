@@ -114,3 +114,54 @@ def test_service_predire_et_departement_inconnu(modele, tmp_path):
     assert (service.predire("classification", "75", X) == m.predict(X)).all()
     with pytest.raises(FileNotFoundError, match=r"\['75'\]"):
         service.predire("classification", "69", X)
+
+
+# Données de performance pour le front
+
+def test_tableaux_evaluation_classification(modele):
+    m, X = modele
+    y = donnees()["etiquette_dpe"]
+    t = m.tableaux_evaluation(X, y, y)
+    assert set(t) == {"scores", "matrice_confusion", "par_etiquette", "importance_variables"}
+    scores = t["scores"].set_index("metrique")
+    assert list(scores.index) == ["f1_macro", "accuracy", "a_une_classe_pres"]
+    # référence naïve : toujours l'étiquette la plus fréquente
+    assert scores.loc["accuracy", "reference_naive"] == pytest.approx(y.value_counts(normalize=True).max())
+    matrice = t["matrice_confusion"]
+    assert list(matrice.columns) == ["vraie", "predite", "effectif", "pourcentage"]
+    assert matrice["effectif"].sum() == len(y)
+    assert matrice.groupby("vraie")["pourcentage"].sum().round().eq(100).all()
+    assert list(t["par_etiquette"]["etiquette"]) == ["C", "D", "E"]
+    assert set(t["importance_variables"]["variable"]) == set(VARIABLES_FORMULAIRE)
+
+
+def test_tableaux_evaluation_regression():
+    X, y = preparer_xy(donnees(), "conso_5_usages_par_m2_ef")
+    m = RegressionModel()
+    m.train(X, y)
+    t = m.tableaux_evaluation(X, y, y)
+    assert set(t) == {"scores", "predit_reel", "erreur_par_tranche", "importance_variables"}
+    scores = t["scores"].set_index("metrique")
+    assert scores.loc["mae", "unite"] == "kWh/m²/an"
+    assert scores.loc["mae", "valeur"] < scores.loc["mae", "reference_naive"]   # mieux que la médiane
+    assert list(t["predit_reel"].columns) == ["reel", "predit"]
+    tranches = t["erreur_par_tranche"]
+    assert tranches["effectif"].sum() == len(y)
+    assert tranches["tranche"].iloc[-1] == "400 et plus"
+    # la surface explique la cible : c'est la variable la plus importante
+    assert t["importance_variables"]["variable"].iloc[0] == "surface_habitable_logement"
+
+
+def test_evaluation_enregistree_et_relue_par_le_service(modele, tmp_path):
+    m, X = modele
+    y = donnees()["etiquette_dpe"]
+    registre = ModelRegistry(root=tmp_path)
+    tableaux = m.tableaux_evaluation(X, y, y)
+    registre.save("classification", "75", "2026-10-12_132605", m, {}, tableaux)
+    assert registre.load_meta("classification", "75")["evaluation"] == list(tableaux)
+    service = AppService(repository=object(), registry=registre)
+    assert service.liste_evaluation("classification", "75") == list(tableaux)
+    pd.testing.assert_frame_equal(service.evaluation_modele("classification", "75", "matrice_confusion"),
+                                  tableaux["matrice_confusion"])
+    with pytest.raises(KeyError, match="Disponibles"):
+        service.evaluation_modele("classification", "75", "inconnu")
