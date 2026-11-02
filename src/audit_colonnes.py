@@ -1,25 +1,25 @@
 """
-Audit des colonnes d'un snapshot : repère les colonnes NOUVELLES (absentes de
-docs/colonnes_retenues.csv) et les colonnes DISPARUES, et décrit les nouvelles.
+Audit des colonnes d'un snapshot brut, sans fichier de référence à maintenir. Deux contrôles :
+1. les colonnes UTILISÉES PAR LE CODE (nettoyage, formulaire des modèles, statistiques) sont-elles
+   toutes présentes ? Les listes sont lues dans le code lui-même : rien à recopier ;
+2. par rapport au snapshot PRÉCÉDENT : quelles colonnes sont nouvelles, lesquelles ont disparu ?
+   Les nouvelles sont décrites (type, manquants, exemples, suggestion).
 
-Le nettoyage garde toutes les colonnes, sauf celles trop vides : une colonne nouvelle
-entre donc automatiquement dans les données propres. Cet audit sert à voir ce qui est
-apparu ou disparu, quelles nouvelles colonnes seront retirées (trop vides), et lesquelles
-semblent contenir la réponse (à ne pas utiliser en entrée d'un modèle).
+Le nettoyage garde toutes les colonnes, sauf celles trop vides : une colonne nouvelle entre donc
+automatiquement dans les données propres. Une colonne obligatoire ou une variable du formulaire
+absente arrête le nettoyage ou l'entraînement (ColonnesManquantesError) ; une colonne des
+statistiques absente donne un tableau vide : l'audit est le seul à la signaler.
 
 Lancé comme étape "audit" du pipeline (src/train.py) :
     python -m src.train --audit                       # dernier snapshot
     python -m src.train --audit --snapshot 2026-10-18_101500
-Sortie : affichage + docs/audit_<snapshot>.csv
+Sortie : affichage + docs/audit_<snapshot>.csv (s'il y a des colonnes nouvelles)
 """
-from pathlib import Path
-
 import pandas as pd
 
-from .preprocessing import SEUIL_MANQUANT
-from .models.features import PREFIXES_FUITE, PREFIXES_CALCUL
-
-RACINE = Path(__file__).resolve().parent.parent
+from .analysis import COLONNES_UTILES
+from .preprocessing import COLONNES_CREEES, COLONNES_OBLIGATOIRES, SEUIL_MANQUANT
+from .models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, PREFIXES_FUITE, PREFIXES_CALCUL, VARIABLES_FORMULAIRE
 
 # Seuils de l'audit (critères calculés, pas de liste codée en dur).
 # SEUIL_MANQUANT est celui du nettoyage (src/preprocessing.py).
@@ -27,15 +27,27 @@ SEUIL_CORRELATION = 0.9   # quasi-identique à la consommation : fuite probable
 
 # Familles de colonnes qui contiennent (ou reflètent) la réponse : PREFIXES_FUITE et PREFIXES_CALCUL,
 # définis dans src/models/features.py (les mêmes listes servent à retirer ces colonnes des modèles)
-CIBLE = "conso_5_usages_par_m2_ep"
-CSV_REFERENCE = RACINE / "docs" / "colonnes_retenues.csv"
+# corrélation calculée avec la cible de la régression (même constante que l'entraînement)
+CIBLE = CIBLE_REGRESSION
+
+# colonnes utilisées par le code, et où : {usage: colonnes}
+UTILISATIONS = {"nettoyage": COLONNES_OBLIGATOIRES,
+                "formulaire": VARIABLES_FORMULAIRE,
+                "cible": [CIBLE_CLASSIFICATION, CIBLE_REGRESSION],
+                "statistiques": COLONNES_UTILES}
 
 
-def colonnes_connues(chemin=CSV_REFERENCE):
-    """Les colonnes déjà vues (1re colonne du CSV de référence)."""
-    ref = pd.read_csv(chemin)
-    nom = "colonne" if "colonne" in ref.columns else ref.columns[0]
-    return set(ref[nom].astype(str))
+def colonnes_utilisees():
+    """{colonne brute: [usages]} ; une colonne créée par le nettoyage est remplacée par sa source brute."""
+    usages = {}
+    for usage, colonnes in UTILISATIONS.items():
+        for c in colonnes:
+            c = COLONNES_CREEES.get(c, c)
+            if c is not None:
+                usages.setdefault(c, [])
+                if usage not in usages[c]:
+                    usages[c].append(usage)
+    return usages
 
 
 def decrire(serie, cible=None):
@@ -70,31 +82,48 @@ def decrire(serie, cible=None):
     return ligne
 
 
-def auditer(df, chemin_reference=CSV_REFERENCE):
-    """Renvoie (nouvelles : DataFrame, disparues : liste)."""
-    connues = colonnes_connues(chemin_reference)
+def auditer(df, colonnes_precedentes=None):
+    """Audite les colonnes de df (données brutes).
+
+    Args:
+        df: toutes les données brutes du snapshot
+        colonnes_precedentes: colonnes du snapshot précédent, None s'il n'y en a pas
+
+    Returns:
+        (manquantes : {colonne: [usages]}, nouvelles : DataFrame, disparues : liste)
+        nouvelles et disparues sont vides sans snapshot précédent.
+    """
     actuelles = set(df.columns)
-    nouvelles = sorted(actuelles - connues - {"origine"})
-    ref = pd.read_csv(chemin_reference)
-    vues_gardees = set(ref[ref.columns[0]].astype(str)[ref["decision"] == "gardée"]) \
-        if "decision" in ref.columns else connues
-    disparues = sorted(c for c in vues_gardees - {"origine"} if c not in actuelles)
+    manquantes = {c: u for c, u in colonnes_utilisees().items() if c not in actuelles}
+    if colonnes_precedentes is None:
+        return manquantes, pd.DataFrame(), []
+    nouvelles = sorted(actuelles - set(colonnes_precedentes))
+    disparues = sorted(set(colonnes_precedentes) - actuelles)
     cible = df[CIBLE] if CIBLE in df.columns else None
     desc = pd.DataFrame([decrire(df[c], cible) for c in nouvelles])
     if len(desc):
         # les candidates d'abord
         desc = desc.sort_values("suggestion", key=lambda x: ~x.str.startswith("ATTENTION"), kind="stable")
-    return desc, disparues
+    return manquantes, desc, disparues
 
 
-def afficher(snap, tout, desc, disparues, sortie=None):
+def afficher(snap, tout, manquantes, desc, disparues, snap_precedent=None, sortie=None):
     """Affiche le résultat de auditer() ; sortie : chemin du CSV écrit (None si rien écrit)."""
     print(f"Snapshot {snap} : {len(tout)} lignes, {tout.shape[1]} colonnes")
-    print(f"\nColonnes DISPARUES (déjà vues et gardées) : {disparues or 'aucune'}")
-    print(f"\nColonnes NOUVELLES : {len(desc)}")
+    if manquantes:
+        print("\nATTENTION, colonnes UTILISÉES PAR LE CODE absentes :")
+        for c, usages in manquantes.items():
+            print(f"  {c} ({', '.join(usages)})")
+    else:
+        print("\nColonnes utilisées par le code : toutes présentes")
+    if snap_precedent is None:
+        print("\nPas de snapshot précédent : comparaison des colonnes sautée")
+        return
+    print(f"\nPar rapport au snapshot précédent ({snap_precedent}) :")
+    print(f"  disparues : {disparues or 'aucune'}")
+    print(f"  nouvelles : {len(desc)}")
     if len(desc):
         with pd.option_context("display.max_colwidth", 70, "display.width", 200):
             print(desc.to_string(index=False))
         print(f"\nÉcrit : {sortie}")
-        print("Les colonnes nouvelles non trop vides entrent automatiquement dans les données "
-              "propres. Les noter dans docs/colonnes_retenues.csv pour qu'elles ne soient plus signalées.")
+        print("Les colonnes nouvelles non trop vides entrent automatiquement dans les données propres.")

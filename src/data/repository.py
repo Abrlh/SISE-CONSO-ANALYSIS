@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
+import pyarrow.parquet as pq
 from .api_client import AdemeApiClient
 from ..storage import LocalStorage, Storage
 
@@ -187,6 +188,20 @@ class DataRepository():
         meta = {"snapshot_id": snapshot_id, "stats": list(stats),
                 "calcule_le": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         (stats_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+
+    def colonnes(self, snapshot_id:str)-> set[str]:
+        """Noms des colonnes d'un snapshot brut (tous départements et datasets).
+        Seul l'en-tête des fichiers parquet est lu : les données ne sont pas chargées."""
+        meta = json.loads((self.__root / snapshot_id / "meta.json").read_text())
+        return {c for departement, names in meta["departements"].items() for name in names
+                for c in pq.read_schema(self.__root / snapshot_id / departement / f"{name}.parquet").names}
+
+
+    def snapshot_precedent(self, snapshot_id:str)-> str|None:
+        """Id du snapshot complet juste avant snapshot_id, None s'il n'y en a pas."""
+        avant = [s for s in self.list_snapshots() if s < snapshot_id]
+        return avant[-1] if avant else None
 
 
     def save_audit(self, snapshot_id:str, audit:pd.DataFrame)-> Path:

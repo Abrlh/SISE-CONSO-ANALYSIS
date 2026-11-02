@@ -12,7 +12,7 @@ nouvelles d'un rafraîchissement entrent donc automatiquement. Les valeurs manqu
 ne sont pas remplacées : l'imputation se fera à la modélisation, sur l'entraînement
 seulement.
 Les décisions et leurs justifications sont documentées dans
-notebooks/02_nettoyage_donnees.ipynb et docs/colonnes_retenues.csv.
+notebooks/02_nettoyage_donnees.ipynb et docs/nettoyage_donnees.md.
 """
 import pandas as pd
 
@@ -46,6 +46,9 @@ TYPES_BATIMENT_EXCLUS = ["immeuble"]       # [] pour garder les immeubles
 
 COLONNES_OBLIGATOIRES = ["numero_dpe", "etiquette_dpe",
                          "conso_5_usages_par_m2_ep", "surface_habitable_logement"]
+# colonnes créées par le nettoyage -> colonne brute dont elles viennent (None : ajoutée par la fusion)
+# (sert à l'audit, qui contrôle les données brutes)
+COLONNES_CREEES = {"origine": None, "latitude": "_geopoint", "longitude": "_geopoint"}
 COLONNES_NUMERIQUES = ["conso_5_usages_par_m2_ep", "surface_habitable_logement",
                        "emission_ges_5_usages_par_m2", "hauteur_sous_plafond"]
 # Ordres des catégories ordonnées (pour les filtres et les graphiques)
@@ -55,14 +58,29 @@ ORDRE_ISOLATION = ["insuffisante", "moyenne", "bonne", "très bonne"]
 
 
 
+class ColonnesManquantesError(ValueError):
+    """Colonnes attendues par le code mais absentes des données (cause probable : l'API de l'ADEME
+    a renommé ou retiré une colonne). `colonnes` : liste des colonnes manquantes.
+    Levée par le nettoyage et par la préparation des modèles : un seul `except` suffit."""
+
+    def __init__(self, colonnes, contexte):
+        self.colonnes = colonnes
+        super().__init__(f"{contexte} absentes des données : {colonnes}")
+
+
+def verifier_colonnes(df, colonnes, contexte):
+    """Lève ColonnesManquantesError si une des `colonnes` manque dans df ; sinon renvoie df."""
+    manquantes = [c for c in colonnes if c not in df.columns]
+    if manquantes:
+        raise ColonnesManquantesError(manquantes, contexte)
+    return df
+
+
 # Règles de nettoyage : une fonction par règle, DataFrame en entrée et en sortie
 
 def verifier_colonnes_obligatoires(df):
     """Arrête le nettoyage avec un message clair si une colonne indispensable manque."""
-    manquantes = [c for c in COLONNES_OBLIGATOIRES if c not in df.columns]
-    if manquantes:
-        raise ValueError(f"Colonnes indispensables absentes des données : {manquantes}")
-    return df
+    return verifier_colonnes(df, COLONNES_OBLIGATOIRES, "Colonnes indispensables")
 
 def convertir_types(df):
     """Nombres et dates : les valeurs illisibles deviennent manquantes."""
