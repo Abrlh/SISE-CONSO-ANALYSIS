@@ -10,5 +10,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - name: Vérifier que le code compile
         run: python -m compileall -q src app tests
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+      - name: Lancer les tests
+        run: python -m pytest -q
