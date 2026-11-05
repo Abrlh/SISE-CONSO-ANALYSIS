@@ -1,18 +1,9 @@
 """
-Prétraitement des DPE (logements neufs et existants).
+Prétraitement des DPE : DataPreprocessor fusionne neufs et existants par département,
+puis applique les règles (une fonction par règle, sans accès aux fichiers).
 
-- Les fonctions de règle reçoivent un DataFrame et en renvoient un, sans lire ni
-  écrire de fichier : elles servent au nettoyage initial, au rafraîchissement des
-  données dans l'app et au réentraînement.
-- La classe DataPreprocessor fusionne neufs et existants par département, puis
-  applique ces règles.
-Le nettoyage ne sélectionne PAS de variables : toutes les colonnes de l'API sont
-conservées, sauf celles qui sont trop vides (seuil SEUIL_MANQUANT). Les colonnes
-nouvelles d'un rafraîchissement entrent donc automatiquement. Les valeurs manquantes
-ne sont pas remplacées : l'imputation se fera à la modélisation, sur l'entraînement
-seulement.
-Les décisions et leurs justifications sont documentées dans
-notebooks/02_nettoyage_donnees.ipynb et docs/colonnes_retenues.csv.
+Toutes les colonnes sont gardées sauf les trop vides (SEUIL_MANQUANT) ; aucune imputation ici.
+Justification des règles : docs/nettoyage_donnees.md.
 """
 import pandas as pd
 
@@ -46,6 +37,9 @@ TYPES_BATIMENT_EXCLUS = ["immeuble"]       # [] pour garder les immeubles
 
 COLONNES_OBLIGATOIRES = ["numero_dpe", "etiquette_dpe",
                          "conso_5_usages_par_m2_ep", "surface_habitable_logement"]
+# colonnes créées par le nettoyage -> colonne brute dont elles viennent (None : ajoutée par la fusion)
+# (sert à l'audit, qui contrôle les données brutes)
+COLONNES_CREEES = {"origine": None, "latitude": "_geopoint", "longitude": "_geopoint"}
 COLONNES_NUMERIQUES = ["conso_5_usages_par_m2_ep", "surface_habitable_logement",
                        "emission_ges_5_usages_par_m2", "hauteur_sous_plafond"]
 # Ordres des catégories ordonnées (pour les filtres et les graphiques)
@@ -55,14 +49,27 @@ ORDRE_ISOLATION = ["insuffisante", "moyenne", "bonne", "très bonne"]
 
 
 
+class ColonnesManquantesError(ValueError):
+    """Colonnes attendues par le code mais absentes des données (`colonnes` : leur liste)."""
+
+    def __init__(self, colonnes, contexte):
+        self.colonnes = colonnes
+        super().__init__(f"{contexte} absentes des données : {colonnes}")
+
+
+def verifier_colonnes(df, colonnes, contexte):
+    """Lève ColonnesManquantesError si une des `colonnes` manque dans df ; sinon renvoie df."""
+    manquantes = [c for c in colonnes if c not in df.columns]
+    if manquantes:
+        raise ColonnesManquantesError(manquantes, contexte)
+    return df
+
+
 # Règles de nettoyage : une fonction par règle, DataFrame en entrée et en sortie
 
 def verifier_colonnes_obligatoires(df):
     """Arrête le nettoyage avec un message clair si une colonne indispensable manque."""
-    manquantes = [c for c in COLONNES_OBLIGATOIRES if c not in df.columns]
-    if manquantes:
-        raise ValueError(f"Colonnes indispensables absentes des données : {manquantes}")
-    return df
+    return verifier_colonnes(df, COLONNES_OBLIGATOIRES, "Colonnes indispensables")
 
 def convertir_types(df):
     """Nombres et dates : les valeurs illisibles deviennent manquantes."""
@@ -107,9 +114,7 @@ def filtrer_emissions_ges(df):
     return df[~(df["emission_ges_5_usages_par_m2"] > GES_MAX)]
 
 def extraire_coordonnees(df):
-    """_geopoint = 'latitude,longitude'. Les points hors de la France métropolitaine
-    (position erronée commune à Lille et Lyon) deviennent manquants : la ligne est
-    conservée mais n'apparaît pas sur la carte."""
+    """Extrait latitude et longitude de _geopoint ; hors métropole, la position devient manquante."""
     if "_geopoint" not in df.columns:
         return df
     df = df.copy()
@@ -142,9 +147,11 @@ def supprimer_espaces(df):
     return df
 
 def retirer_colonnes_vides(df, retirees=None):
-    """Retire les colonnes dont plus de SEUIL_MANQUANT des valeurs sont manquantes
-    (sans jamais toucher aux colonnes indispensables). Aucune valeur n'est remplacée.
-    Si `retirees` est une liste, on y ajoute (colonne, % manquant)."""
+    """Retire les colonnes avec plus de SEUIL_MANQUANT de valeurs manquantes (sauf obligatoires).
+
+    Args:
+        retirees: si c'est une liste, on y ajoute (colonne, % manquant)
+    """
     taux = df.isna().mean()
     a_retirer = [c for c in df.columns
                  if taux[c] > SEUIL_MANQUANT and c not in COLONNES_OBLIGATOIRES]
@@ -154,10 +161,12 @@ def retirer_colonnes_vides(df, retirees=None):
 
 
 def nettoyer(df, bilan=None, colonnes_retirees=None):
-    """Un département fusionné (brut) -> DataFrame propre.
-    Si `bilan` est une liste, on y ajoute (règle, nombre de lignes) après chaque étape.
-    Si `colonnes_retirees` est une liste, on y ajoute (colonne, % manquant) pour chaque
-    colonne retirée parce que trop vide."""
+    """Nettoie un département fusionné.
+
+    Args:
+        bilan: si c'est une liste, on y ajoute (règle, nombre de lignes) après chaque étape
+        colonnes_retirees: si c'est une liste, on y ajoute (colonne, % manquant)
+    """
     if bilan is None:
         bilan = []
 
@@ -186,9 +195,7 @@ def nettoyer(df, bilan=None, colonnes_retirees=None):
 # Classe utilisée par le reste du projet (interface inchangée)
 
 class DataPreprocessor():
-    """
-    Preprocesses the data for analysis and modeling.
-    """
+    """Prétraite les données pour l'analyse et la modélisation."""
 
     def __init__(self, appliquer_nettoyage: bool = True):
         """
@@ -202,11 +209,11 @@ class DataPreprocessor():
 
 
     def rapport(self) -> dict:
-        """Bilan du dernier process(), sous une forme qui s'écrit en JSON :
-        {departement: {"bilan": [[étape, lignes], ...],
-                       "colonnes_retirees": [[colonne, % manquant], ...]}}
-        Il est enregistré à côté des données nettoyées (meta.json) pour que le calcul des
-        statistiques puisse le retrouver sans refaire le nettoyage."""
+        """Bilan du dernier process(), enregistré dans meta.json.
+
+        Returns:
+            {departement: {"bilan": [[étape, lignes]], "colonnes_retirees": [[colonne, % manquant]]}}
+        """
         return {
             str(d): {
                 "bilan": [[etape, int(n)] for etape, n in self.bilans[d]["lignes"].items()],

@@ -1,32 +1,34 @@
 import argparse
 
-from .data.repository import DataRepository
-from .preprocessing import DataPreprocessor
-from .analysis import StatAnalyzer
-from .models.registry import ModelRegistry
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+from ..data.repository import DataRepository
+from ..processing.audit_colonnes import auditer, afficher
+from ..processing.preprocessing import DataPreprocessor
+from ..processing.analysis import StatAnalyzer
+from ..models.registry import ModelRegistry
+from ..models.classification import ClassificationModel
+from ..models.regression import RegressionModel
+from ..models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, preparer_xy
 
 
 class TrainingPipeline():
-    """
-    Starting point for the training pipeline. 
-    Responsible for orchestrating the training process, 
-    including data loading, preprocessing, model training, and evaluation.
-    """
+    """Pipeline d'entraînement : chargement, audit, prétraitement, statistiques, entraînement."""
     def __init__(self):
 
         self.__preprocessor:DataPreprocessor = DataPreprocessor()
         self.__repository:DataRepository = DataRepository()
         self.__analyzer:StatAnalyzer = StatAnalyzer()
-        self.__registry:ModelRegistry = None
+        self.__registry:ModelRegistry = ModelRegistry()
         tasks_config:dict
         pass
 
     # Étapes disponibles, toujours exécutées dans cet ordre
-    STEPS = ("load", "preprocess", "stats")
+    STEPS = ("load", "audit", "preprocess", "stats", "train")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
-        """
-        Run the training pipeline for a given snapshot ID.
+        """Lance les étapes demandées du pipeline sur un snapshot.
 
         Args:
             steps: étapes à exécuter, parmi STEPS
@@ -44,16 +46,21 @@ class TrainingPipeline():
         if "load" in steps:
             print(f"=== Étape 1 : chargement des données brutes du snapshot {snapid} ===")
             datasets = self.load_raw(snapid)
+        if "audit" in steps:
+            print(f"=== Étape 1 bis : audit des colonnes du snapshot {snapid} ===")
+            # chargées ici pour que preprocess les réutilise sans relire le disque
+            if datasets is None:
+                datasets = self.load_raw(snapid)
+            self.audit(snapid, datasets)
         if "preprocess" in steps:
             print(f"=== Étape 2 : prétraitement des données brutes du snapshot {snapid} ===")
-            self.preprocess(snapid, datasets)
+            processed = self.preprocess(snapid, datasets)
         if "stats" in steps:
             print(f"=== Étape 3 : calcul des statistiques du snapshot {snapid} ===")
             self.stats(snapid, processed)
-
-        # 3 train model (snap id)
-
-        # 4 evaluate model (snap id)
+        if "train" in steps:
+            print(f"=== Étape 4 : entraînement et évaluation des modèles du snapshot {snapid} ===")
+            self.train(snapid, processed)
 
         # adapt task config
 
@@ -85,6 +92,29 @@ class TrainingPipeline():
     def load_raw(self, snapid:str)-> dict:
         """Charge les données brutes du snapshot : {departement: {nom_dataset: DataFrame}}."""
         return self.__repository.load(snapid)
+
+
+    ##########################
+    # 1 bis audit des colonnes
+    def audit(self, snapid:str, datasets:dict|None=None)-> tuple:
+        """Contrôle les colonnes du snapshot (voir src/processing/audit_colonnes.py).
+
+        Args:
+            snapid: id du snapshot
+            datasets: données brutes déjà chargées par load_raw(), None pour les charger ici
+
+        Returns:
+            (manquantes : {colonne: [usages]}, nouvelles : DataFrame, disparues : liste)
+        """
+        if datasets is None:
+            datasets = self.load_raw(snapid)
+        tout = pd.concat([d for dep in datasets.values() for d in dep.values()], ignore_index=True)
+        precedent = self.__repository.snapshot_precedent(snapid)
+        colonnes_precedentes = self.__repository.colonnes(precedent) if precedent else None
+        manquantes, desc, disparues = auditer(tout, colonnes_precedentes)
+        sortie = self.__repository.save_audit(snapid, desc) if len(desc) else None
+        afficher(snapid, tout, manquantes, desc, disparues, precedent, sortie)
+        return manquantes, desc, disparues
 
 
     ##########################
@@ -153,9 +183,51 @@ class TrainingPipeline():
         self.__repository.save_stats(snapid, stats)
         return stats
 
+    ##########################
+    # 4 entraînement et évaluation (un modèle par tâche et par département)
+    # {tâche: (classe du modèle, colonne à prédire)}
+    TACHES = {"classification": (ClassificationModel, CIBLE_CLASSIFICATION),
+              "regression": (RegressionModel, CIBLE_REGRESSION)}
+
+    def train(self, snapid:str, processed:dict|None=None)-> dict:
+        """Entraîne, évalue et enregistre un modèle par tâche et par département.
+
+        Args:
+            snapid: id du snapshot
+            processed: données propres déjà chargées, None pour les relire sur le disque
+
+        Returns:
+            {(tache, departement): métriques sur le jeu de test}
+        """
+        if processed is None:
+            processed = self.__repository.load_processed(snapid)
+        resultats = {}
+        for departement, df in processed.items():
+            print(f"    - Département {departement} : {len(df)} lignes")
+            # même découpage pour les deux tâches : les mêmes logements servent de test
+            train_idx, test_idx = train_test_split(df.index, test_size=0.3, random_state=42)
+            for tache, (classe, cible) in self.TACHES.items():
+                X, y = preparer_xy(df, cible)
+                modele = classe()
+                modele.train(X.loc[train_idx], y.loc[train_idx])
+                metriques = modele.evaluate(X.loc[test_idx], y.loc[test_idx])
+                scores = ", ".join(f"{k} : {v:.3f}" for k, v in metriques.items() if k != "rapport")
+                print(f"      {tache} : {scores}" + (f" ({modele.meilleurs_params})" if modele.meilleurs_params else ""))
+                # données de performance pour le front (scores, matrice de confusion, importance...)
+                evaluation = modele.tableaux_evaluation(X.loc[test_idx], y.loc[test_idx], y.loc[train_idx])
+                self.__registry.save(tache, departement, snapid, modele, {
+                    "cible": cible,
+                    "colonnes": list(X.columns),
+                    "meilleurs_params": modele.meilleurs_params,
+                    "nb_lignes_train": len(train_idx), "nb_lignes_test": len(test_idx),
+                    "metriques_test": metriques,
+                }, evaluation)
+                resultats[(tache, departement)] = metriques
+        return resultats
+
 
 if __name__ == "__main__":
-    # Options de la ligne de commande, ex. : python -m src.train --refresh
+    # Options de la ligne de commande, ex. : python -m src.orchestration.train --refresh
     
 
     parser = argparse.ArgumentParser(description="Entraîne les modèles à partir d'un snapshot des données ADEME.")
@@ -172,10 +244,14 @@ if __name__ == "__main__":
     steps = parser.add_argument_group("étapes (par défaut : toutes)")
     steps.add_argument("--load", action="store_true",
                        help="charge les données brutes (avec --refresh : télécharge un nouveau snapshot)")
+    steps.add_argument("--audit", action="store_true",
+                       help="repère les colonnes nouvelles ou disparues du snapshot (écrit docs/audit_<snapshot>.csv)")
     steps.add_argument("--preprocess", action="store_true",
                        help="prétraite les données brutes et enregistre le résultat dans data/processed/")
     steps.add_argument("--stats", action="store_true",
                         help="calcule les statistiques pré-calculées pour l'application et les enregistre dans data/stats/")
+    steps.add_argument("--train", action="store_true",
+                       help="entraîne les modèles (classification et régression) par département et les enregistre dans models/")
     
     
     
@@ -185,10 +261,14 @@ if __name__ == "__main__":
     selected = []
     if args.load:
         selected.append("load")
+    if args.audit:
+        selected.append("audit")
     if args.preprocess:
         selected.append("preprocess")
     if args.stats:
         selected.append("stats")
+    if args.train:
+        selected.append("train")
     # Aucune étape demandée : on les lance toutes
     if not selected:
         selected = list(TrainingPipeline.STEPS)

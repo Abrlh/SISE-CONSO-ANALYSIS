@@ -1,5 +1,5 @@
 """
-Tests unitaires des analyses (src/analysis.py).
+Tests unitaires des analyses (src/processing/analysis.py).
 
 On utilise un petit jeu de 8 logements dont on a calculé les résultats à la main,
 pour vérifier que chaque tableau contient les bons chiffres.
@@ -11,8 +11,8 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src import analysis
-from src.analysis import (
+from src.processing import analysis
+from src.processing.analysis import (
     ANALYSES,
     StatAnalyzer,
     _famille_energie,
