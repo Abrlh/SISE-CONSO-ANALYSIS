@@ -8,15 +8,18 @@ import streamlit as st
 from tableaux import lire, lire_ou_arreter
 
 import graphiques
+from style import habiller_filtres
 from affichage import NOMS_COLONNES_APERCU, NOMS_VARIABLES_COURTS, NOMS_COLONNES_STATS, choisir, filtres_perimetre, fmt_nombre
 
 st.title(":material/bar_chart: Statistiques")
 
 kpi = lire_ou_arreter("kpi_globaux")
 
-# ---- Filtres
-st.sidebar.header("Filtres")
-departement, origine = filtres_perimetre(st.sidebar, kpi)
+# ---- Filtres : bande en haut de la page
+habiller_filtres()
+bande = st.container(border=True, horizontal=True, vertical_alignment="center", key="bande_filtres")
+bande.markdown("**:material/filter_alt: Filtres**")
+departement, origine = filtres_perimetre(bande, kpi)
 filtre_departement = None if departement == "Tous" else departement
 filtre_origine = None if origine == "Tous" else origine
 
@@ -102,16 +105,13 @@ with onglets[1]:
         st.plotly_chart(graphiques.nuage_surface_conso(points, "Consommation selon la surface"))
         st.caption(f"Chaque point est un logement de l'échantillon préparé en amont ({fmt_nombre(len(points))} affichés).")
 
-    par_energie = choisir(lire_ou_arreter("conso_par_etiquette"), departement, origine)
-    if not vide(par_energie):
-        st.plotly_chart(graphiques.courbes_energie(
-            par_energie, "Consommation médiane selon l'étiquette et l'énergie de chauffage"))
 
-    resume = choisir(lire_ou_arreter("stats_conso"), departement, origine)
+        resume = choisir(lire_ou_arreter("stats_conso"), departement, origine)
     if not resume.empty:
         with st.expander("Résumé statistique de la consommation"):
             st.caption("Consommation d'énergie de 5 usages par m² (kWh/m²/an).")
             tableau = resume.drop(columns=["departement", "origine"], errors="ignore").rename(columns=NOMS_COLONNES_STATS)
+            tableau = tableau[[c for c in ["Effectif", "Moyenne", "Écart-type", "Médiane"] if c in tableau.columns]]
             st.dataframe(tableau, hide_index=True)
 # ---- Facteurs
 with onglets[2]:

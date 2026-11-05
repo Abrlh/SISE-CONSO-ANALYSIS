@@ -1,6 +1,11 @@
 [theme]
 base = "light"
-primaryColor = "#0F766E"
-backgroundColor = "#F6FAF8"
-secondaryBackgroundColor = "#E3F1ED"
-textColor = "#1F2D2A"
+primaryColor = "#319834"
+backgroundColor = "#F8FBF1"
+secondaryBackgroundColor = "#ECF6DC"
+textColor = "#17301B"
+font = "Poppins:https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap, sans-serif"
+baseRadius = "large"
+
+[client]
+toolbarMode = "minimal"

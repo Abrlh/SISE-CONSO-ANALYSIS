@@ -17,8 +17,7 @@ if str(RACINE) not in sys.path:
     sys.path.insert(0, str(RACINE))
 
 import streamlit as st
-from style import colorer_menu, empecher_traduction
-# Doit être le premier appel Streamlit du script
+from style import habiller_menu, pied_de_menu, empecher_traduction
 st.set_page_config(
     page_title="CONSO.PROJET_SISE",
     page_icon=":material/bolt:",
@@ -35,7 +34,8 @@ pages = [
 
 # Affiche le menu de navigation, colore la page choisie, puis exécute la page
 page = st.navigation(pages)
-colorer_menu(page.title)
+habiller_menu()
+pied_de_menu()
 empecher_traduction()
 page.run()
    
