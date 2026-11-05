@@ -4,7 +4,7 @@ Ce document explique, de bout en bout, ce qui est fait sur les données avant l'
 Il est écrit pour que chacun, sans avoir suivi le travail de nettoyage, puisse comprendre les choix et les remettre en cause s'il le faut.
 
 Pour le détail technique : le code est dans `src/preprocessing.py` (nettoyage) et `src/audit_colonnes.py` (contrôle des colonnes à chaque rafraîchissement).
-Les décisions sont argumentées dans `notebooks/02_nettoyage_donnees.ipynb`, les lignes retirées par règle sont dans `docs/bilan_nettoyage.csv`, et `docs/colonnes_retenues.csv` liste les colonnes déjà examinées.
+Les décisions sont argumentées dans `notebooks/02_nettoyage_donnees.ipynb`, et les lignes retirées par règle sont dans `docs/bilan_nettoyage.csv`.
 
 **Le principe en une phrase : le nettoyage corrige les erreurs et retire ce qui est inutilisable, mais il ne choisit pas les variables.** Toutes les colonnes de l'API sont conservées, sauf celles qui sont presque vides. Le choix des variables, le remplissage des valeurs manquantes, l'encodage et la découpe entraînement / test se feront à l'analyse et à la modélisation, avec l'ensemble de l'équipe.
 
@@ -80,7 +80,7 @@ Sur le snapshot de référence, 66 à 74 colonnes sont retirées selon le dépar
 Il n'y a plus de liste blanche : si l'API ajoute une colonne lors d'un rafraîchissement, elle est conservée (sauf si elle est trop vide). `src/audit_colonnes.py` permet de la repérer (section 6).
 
 ### Les colonnes qui donnent la réponse (à ne pas utiliser en entrée d'un modèle)
-Les **cibles** sont `etiquette_dpe` (classification A à G) et `conso_5_usages_par_m2_ep` (régression, kWh/m²/an).
+Les **cibles** sont `etiquette_dpe` (classification A à G) et `conso_5_usages_par_m2_ef` (régression, kWh/m²/an, énergie finale), définies dans `src/models/features.py`.
 L'étiquette et la consommation sont **calculées à partir** d'autres colonnes du DPE : si on les donnait au modèle, il aurait d'excellents scores sans rien comprendre (c'est une **fuite de données**), et il serait inutilisable en vrai, puisqu'un utilisateur ne connaît pas ces valeurs avant d'avoir fait le diagnostic.
 Les 9 colonnes les plus évidentes sont listées dans `COLONNES_ANALYSE` : `etiquette_ges`, `emission_ges_5_usages_par_m2`, `conso_5_usages_ep`, `conso_chauffage_ep`, `conso_ecs_ep`, `conso_eclairage_ep`, `conso_auxiliaires_ep`, `cout_total_5_usages`, `ubat_w_par_m2_k`.
 Mais comme toutes les colonnes sont gardées, **il y en a d'autres** : en pratique, toute colonne dont le nom commence par `conso_`, `cout_`, `emission_ges`, `etiquette_`, `deperditions`, `besoin`, `ubat`, `apport_`, `production_` ou `indicateur_` est un résultat du calcul du DPE. L'audit (section 6) les signale. Elles sont utiles pour l'analyse (comprendre d'où vient la consommation, comparer les coûts), pas pour prédire.
@@ -171,10 +171,10 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 | Étape | Commande | Rôle |
 |---|---|---|
 | 1. Récupérer | `python -m src.refresh` | télécharge les données brutes dans `data/raw/<id>/` |
-| 2. Auditer | `python -m src.train --snapshot <id> --audit` | repère les colonnes apparues ou disparues |
+| 2. Auditer | `python -m src.train --snapshot <id> --audit` | colonnes utilisées par le code absentes ; colonnes apparues ou disparues depuis le snapshot précédent |
 | 3. Nettoyer | `python -m src.train --snapshot <id> --preprocess` | écrit `data/processed/<id>/` |
 | 4. Contrôler | (voir ci-dessous) | bilan des lignes et colonnes retirées |
-| 5. Noter | éditer `docs/colonnes_retenues.csv` | les colonnes nouvelles ne seront plus signalées |
+| 5. Documenter | éditer ce document si une décision change | |
 
 ### Étape 1 : obtenir le snapshot
 `python -m src.refresh` interroge l'API de l'ADEME et ne télécharge que si l'ADEME a publié une version plus récente que le dernier snapshot (le téléchargement se fait page par page). On peut aussi l'obtenir avec `python -m src.train --refresh`.
@@ -182,10 +182,12 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 Attention : cette commande lance un vrai téléchargement (`--help` ne l'en empêche pas).
 
 ### Étape 2 : auditer les colonnes (à lancer avant de nettoyer)
-`python -m src.train --audit` (ou `--snapshot <id> --audit`) compare les colonnes du snapshot à celles déjà examinées dans `docs/colonnes_retenues.csv`. Il **ne modifie rien**. Il affiche :
-- **Colonnes disparues** : doit afficher *aucune*. Sinon, une analyse ou le nettoyage peut échouer ; si c'est une colonne indispensable, le nettoyage s'arrête avec un message d'erreur.
-- **Colonnes nouvelles**, avec leur type, leur taux de manquants, des exemples de valeurs et une indication : « **ATTENTION** » (famille qui contient la réponse, à ne pas utiliser en entrée d'un modèle), « **Sera retirée par le nettoyage** » (vide à plus de 80 %), ou « **Entrera dans les données propres** ».
-Le résultat est aussi écrit dans `docs/audit_<snapshot>.csv`. Sur le snapshot de référence, il n'y a aucune colonne nouvelle ni disparue.
+`python -m src.train --audit` (ou `--snapshot <id> --audit`) contrôle les colonnes brutes du snapshot. Il **ne modifie rien** et n'a **aucun fichier de référence à tenir à jour**. Il affiche :
+- **Colonnes utilisées par le code absentes** : doit afficher *toutes présentes*. Les listes sont lues dans le code : colonnes obligatoires du nettoyage, variables du formulaire des modèles (`src/models/features.py`), colonnes des statistiques (`src/analysis.py`). Pour chaque colonne absente, l'usage est indiqué. Une colonne obligatoire ou une variable du formulaire absente arrêtera de toute façon le nettoyage ou l'entraînement (`ColonnesManquantesError`) ; une colonne des statistiques absente donnera un tableau vide.
+- **Par rapport au snapshot précédent** : les colonnes **disparues**, et les colonnes **nouvelles**, avec leur type, leur taux de manquants, des exemples de valeurs et une indication : « **ATTENTION** » (famille qui contient la réponse, à ne pas utiliser en entrée d'un modèle), « **Sera retirée par le nettoyage** » (vide à plus de 80 %), ou « **Entrera dans les données propres** ». Pour le premier snapshot, cette comparaison est sautée.
+
+Un renommage par l'API apparaît comme une colonne disparue et une colonne nouvelle.
+Les colonnes nouvelles sont aussi écrites dans `docs/audit_<snapshot>.csv`.
 Le lancer à chaque **nouveau snapshot**, pas quand on relance le nettoyage sur le même snapshot.
 
 ### Étape 3 : nettoyer
@@ -200,15 +202,18 @@ Ce qu'on cherche : le total retiré reste de l'ordre de 1 à 2 % ; aucune règle
 (`docs/bilan_nettoyage.csv` est écrit par le notebook ; `train.py` n'enregistre pas le bilan.)
 
 ### Étape 5 : documenter
-Ajouter les colonnes nouvelles à `docs/colonnes_retenues.csv`, mettre à jour ce document si une décision a changé, puis enregistrer (commit). Les fichiers de `data/processed` ne se commitent pas.
+Mettre à jour ce document si une décision a changé, puis enregistrer (commit). Les fichiers de `data/processed` ne se commitent pas.
 
 ### Ce qui est automatique et ce qui ne l'est pas
 | Situation | Pris en charge ? |
 |---|---|
 | Règles de nettoyage sur les colonnes connues | oui, par l'étape `preprocess` |
-| Colonne indispensable absente | oui : arrêt avec un message clair |
-| Colonne non indispensable disparue | les règles qui en dépendent sont ignorées ; **signalé par l'audit (étape 2)** |
+| Colonne indispensable absente | oui : arrêt du nettoyage (`ColonnesManquantesError`) |
+| Variable du formulaire absente | oui : arrêt de l'entraînement (`ColonnesManquantesError`, la même erreur) |
+| Colonne des statistiques absente | tableau vide ; **signalé par l'audit (étape 2)** |
+| Autre colonne disparue | les règles qui en dépendent sont ignorées ; **signalé par l'audit (étape 2)** |
 | Nouvelle colonne de l'API | conservée automatiquement si elle n'est pas trop vide ; **repérée par l'audit (étape 2, lancée par `python -m src.train`)** |
+| Valeur d'une catégorie renommée par l'API | **non détecté** : la valeur est traitée comme inconnue par les modèles |
 | Colonne qui contient la réponse | **non filtrée** ; signalée par l'audit seulement |
 | Seuils adaptés aux nouvelles données | **non** : à vérifier avec le bilan (étape 4) |
 | Doublons entre ancien et nouveau snapshot | **non** : la déduplication ne travaille que sur un snapshot |
