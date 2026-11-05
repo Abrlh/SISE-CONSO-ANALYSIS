@@ -8,10 +8,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
 class RegressionModel(BaseModel):
-    """Prédit la consommation (kWh/m²/an), même pipeline que le notebook 03_ML (gradient boosting réglé).
+    """Prédit la consommation (kWh/m²/an) par gradient boosting, comme le notebook 03_ML.
 
-    Pas de sélection de variables : SelectKBest n'accepte pas les cases vides, que ce pipeline
-    laisse passer jusqu'au modèle (le gradient boosting les gère lui-même).
+    Pas de SelectKBest : il n'accepte pas les valeurs manquantes.
     """
     def __init__(self):
         super().__init__()

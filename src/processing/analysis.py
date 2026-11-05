@@ -1,21 +1,9 @@
 """
-Analyses statistiques des DPE, pré-calculées pour l'application.
+Statistiques des DPE, pré-calculées par `train --stats` et enregistrées dans data/stats/<snapshot>/.
 
-Principe : l'application Streamlit ne calcule rien, elle LIT. Ce module calcule une fois
-(étape `--stats` de train.py) un ensemble de petits tableaux, enregistrés dans
-data/stats/<snapshot>/<nom>.parquet par DataRepository.save_stats().
-
-- Une analyse = une fonction qui reçoit UN DataFrame (tous les départements, déjà
-  nettoyés) et renvoie UN petit DataFrame. Comme pour le nettoyage : une règle, une fonction.
-  Seule exception : qualite_donnees(), qui a besoin des colonnes complètes de chaque
-  département ({departement: DataFrame}).
-- Chaque tableau contient les sous-totaux dont l'application a besoin : la valeur
-  "Tous" dans `departement` ou `origine` veut dire "tous confondus". L'application
-  filtre donc simplement (departement == "75", origine == "dpe_existants"...).
-- Si une colonne nécessaire manque dans les données, l'analyse renvoie un tableau vide
-  (mêmes colonnes) au lieu de planter : un rafraîchissement ne casse pas l'application.
-- Pour ajouter une analyse : écrire la fonction, puis l'ajouter au dictionnaire ANALYSES
-  en bas du fichier. Elle sera calculée et enregistrée automatiquement.
+Une analyse = une fonction DataFrame -> petit DataFrame, déclarée dans ANALYSES (bas du fichier).
+La valeur "Tous" dans `departement` ou `origine` signifie "tous confondus".
+Colonne manquante : tableau vide renvoyé, pas d'erreur.
 """
 import numpy as np
 import pandas as pd
@@ -174,9 +162,7 @@ def _quantiles(groupe, noms=("q1", "mediane", "q3")):
 
 
 def _ordre_modalites(variable, t):
-    """Rang d'affichage de chaque modalité : l'ordre naturel s'il existe (périodes,
-    isolation), sinon de la plus fréquente à la moins fréquente. `t` doit contenir
-    departement, origine, modalite et effectif."""
+    """Rang d'affichage des modalités : ordre naturel s'il existe, sinon par effectif décroissant."""
     tous = t[(t[DEPT] == TOUS) & (t[ORIGINE] == TOUS)]
     frequence = tous.groupby("modalite")["effectif"].sum().sort_values(ascending=False)
     if variable in ORDRES:
@@ -261,10 +247,7 @@ def stats_conso(df):
 
 
 def stats_numeriques(df):
-    """Résumé statistique de chaque variable numérique (consommation, surface, hauteur sous
-    plafond, émissions de GES, coût) par département et origine (+ "Tous") : nombre de valeurs
-    renseignées, nombre de valeurs manquantes, moyenne, écart-type, minimum, percentiles
-    5/25/50/75/95 et maximum. Même principe que stats_conso, pour toutes les variables."""
+    """Résumé (effectif, manquants, moyenne, écart-type, percentiles) de chaque variable numérique."""
     colonnes = ["variable", DEPT, ORIGINE, "effectif", "nb_manquants", "moyenne", "ecart_type",
                 "minimum", "p05", "q1", "mediane", "q3", "p95", "maximum"]
     variables = [v for v in COLONNES_CORRELATION if v in df.columns]
@@ -290,10 +273,7 @@ def stats_numeriques(df):
 # Consommation et étiquettes selon les caractéristiques du logement
 # ---------------------------------------------------------------------------
 def conso_par_modalite(df):
-    """Consommation et part de passoires selon chaque variable qualitative (période de
-    construction, énergie, isolation, tranche de surface...). Une ligne par variable,
-    modalité, département et origine : effectif, p5/quartiles/p95 de la consommation
-    (de quoi tracer une boîte à moustaches), part de F et G, rang d'affichage."""
+    """Distribution de la consommation et part de F/G pour chaque modalité des variables qualitatives."""
     df = _enrichir(df)
     variables = [v for v in VARIABLES_CATEGORIELLES if v in df.columns]
     base = _par_perimetre(_preparer(df, [COL_DEPT_SOURCE, ORIGINE, ETIQUETTE, CONSO] + variables))
@@ -339,9 +319,7 @@ def etiquette_par_modalite(df):
 
 
 def conso_par_etiquette(df):
-    """Consommation de chaque étiquette A à G, selon la famille d'énergie de chauffage
-    (+ "Tous"), par département et origine : c'est la question du client (impact de la
-    classe DPE sur la consommation, notamment électrique). Effectif, moyenne, quartiles."""
+    """Consommation par étiquette A à G et par famille d'énergie de chauffage."""
     df = _enrichir(df)
     if "famille_energie" not in df.columns:
         df = df.assign(famille_energie=NON_RENSEIGNE)
@@ -356,9 +334,7 @@ def conso_par_etiquette(df):
 
 
 def cout_ges_par_etiquette(df):
-    """Pour chaque étiquette : consommation médiane, coût médian par m² (cout_total_5_usages
-    divisé par la surface, dans l'unité de la source) et émissions de gaz à effet de serre
-    médianes (kg CO2/m²/an)."""
+    """Consommation, coût par m² et émissions de GES médians par étiquette."""
     colonnes = [DEPT, ORIGINE, "etiquette", "effectif", "conso_mediane", "cout_par_m2_median", "ges_median"]
     if _manque(df, COUT, GES, SURFACE):
         return _vide(colonnes)
@@ -393,9 +369,10 @@ def etiquette_ges_vs_dpe(df):
 
 
 def correlations(df):
-    """Corrélations de Spearman entre variables numériques (consommation, surface, hauteur,
-    émissions, coût), par origine (+ "Tous"). Format long : variable_x, variable_y, correlation.
-    Attention : émissions et coût contiennent la réponse, à ne pas utiliser comme entrées d'un modèle."""
+    """Corrélations de Spearman entre variables numériques, par origine (format long).
+
+    Émissions et coût contiennent la réponse : ne pas les utiliser comme entrées d'un modèle.
+    """
     colonnes = [ORIGINE, "variable_x", "variable_y", "correlation"]
     cols = [c for c in COLONNES_CORRELATION if c in df.columns]
     if len(cols) < 2:
@@ -417,9 +394,10 @@ def correlations(df):
 # Temps, géographie, qualité des données
 # ---------------------------------------------------------------------------
 def evolution_annuelle(df):
-    """Nombre de logements, consommation médiane et part de passoires par année de réception
-    du DPE, par département et origine (+ "Tous"). Attention : l'échantillon n'est pas
-    forcément tiré au hasard dans le temps, ne pas conclure sur une tendance réelle."""
+    """Effectif, consommation médiane et part de passoires par année de réception du DPE.
+
+    L'échantillon n'est pas tiré au hasard dans le temps : pas de conclusion sur une tendance.
+    """
     colonnes = [DEPT, ORIGINE, "annee", "effectif", "conso_mediane", "part_f_g"]
     df = _enrichir(df)
     if "annee_reception" not in df.columns:
@@ -452,9 +430,7 @@ def couverture_temporelle(df):
 
 
 def communes(df):
-    """Une ligne par commune (et origine, + "Tous") : nombre de logements, consommation
-    médiane, part de passoires, position (médiane des coordonnées). Les communes de moins de
-    MIN_LOGEMENTS_COMMUNE logements ne sont pas gardées. Sert à la carte."""
+    """Indicateurs par commune pour la carte (moins de MIN_LOGEMENTS_COMMUNE logements : exclue)."""
     colonnes = [DEPT, "code_insee", "commune", ORIGINE, "effectif", "conso_mediane",
                 "part_f_g", "latitude", "longitude"]
     if _manque(df, INSEE, COMMUNE, LAT, LON):
@@ -473,9 +449,7 @@ def communes(df):
 
 
 def echantillon_points(df):
-    """Échantillon aléatoire (POINTS_PAR_DEPARTEMENT par département, toujours le même grâce
-    à une graine fixe) de logements avec leur position : pour les markers de la carte et
-    le nuage de points (surface contre consommation)."""
+    """Échantillon fixe de POINTS_PAR_DEPARTEMENT logements géolocalisés par département."""
     colonnes = [DEPT, ORIGINE, ETIQUETTE, CONSO, SURFACE, LAT, LON, COMMUNE,
                 "periode_construction", "type_batiment", "famille_energie"]
     df = _enrichir(df)
@@ -490,9 +464,7 @@ def echantillon_points(df):
 
 
 def table_logements(df):
-    """Table légère : une ligne par logement, une quinzaine de colonnes. L'application la
-    charge une fois en mémoire pour les filtres (sliders, listes) et l'export CSV des
-    données sélectionnées. Les textes sont en 'category' pour économiser la mémoire."""
+    """Table légère, une ligne par logement, pour les filtres et l'export CSV de l'application."""
     df = _enrichir(df)
     out = _preparer(df, COLONNES_LOGEMENTS)
     if "annee_reception" in out.columns:
@@ -506,9 +478,11 @@ def table_logements(df):
 
 
 def qualite_donnees(data):
-    """Taux de cases vides de chaque colonne, par département (+ "Tous") : pour la page
-    Contexte. Prend {departement: DataFrame} (colonnes complètes). Une colonne retirée du
-    département par le nettoyage (trop vide) a presente=False et compte comme 100 % vide."""
+    """Taux de valeurs manquantes par colonne et par département.
+
+    Args:
+        data: {departement: DataFrame}. Une colonne retirée par le nettoyage compte comme 100 % vide.
+    """
     lignes = pd.Series({d: len(df) for d, df in data.items()})
     manquants = pd.DataFrame({d: df.isna().sum() for d, df in data.items()})
     presente = manquants.notna()
@@ -531,10 +505,11 @@ def qualite_donnees(data):
 
 
 def apercu_donnees(data):
-    """Taille des données nettoyées pour la page Contexte : nombre de lignes, de colonnes, et
-    nombre de colonnes numériques, de dates, de textes (et autres), par département (+ "Tous").
-    Prend {departement: DataFrame} (colonnes complètes), comme qualite_donnees. Pour "Tous",
-    une colonne présente dans plusieurs départements n'est comptée qu'une fois."""
+    """Nombre de lignes et de colonnes (par type) par département.
+
+    Args:
+        data: {departement: DataFrame}
+    """
     colonnes = [DEPT, "nb_lignes", "nb_colonnes", "nb_numeriques", "nb_dates", "nb_texte"]
 
     def ligne(nom, nb_lignes, types):
@@ -556,9 +531,11 @@ def apercu_donnees(data):
 
 
 def bilan_nettoyage(nettoyage):
-    """Nombre de lignes après chaque règle du nettoyage, par département (+ "Tous"), pour la
-    page Contexte : `lignes` après l'étape, `lignes_retirees` par cette étape. Prend le
-    rapport enregistré par le nettoyage ({departement: {"bilan": [[étape, lignes], ...]}})."""
+    """Lignes restantes et retirées après chaque règle du nettoyage, par département.
+
+    Args:
+        nettoyage: rapport de DataPreprocessor.rapport()
+    """
     colonnes = [DEPT, "ordre", "etape", "lignes", "lignes_retirees"]
     morceaux = []
     for dept, rapport in (nettoyage or {}).items():
@@ -579,9 +556,11 @@ def bilan_nettoyage(nettoyage):
 
 
 def colonnes_retirees(nettoyage):
-    """Colonnes retirées par le nettoyage parce qu'elles étaient trop vides, par département,
-    avec leur pourcentage de cases vides avant retrait (le seuil est SEUIL_MANQUANT dans
-    preprocessing.py). Prend le rapport enregistré par le nettoyage."""
+    """Colonnes retirées par le nettoyage car trop vides, avec leur taux de manquants.
+
+    Args:
+        nettoyage: rapport de DataPreprocessor.rapport()
+    """
     colonnes = [DEPT, "colonne", "pct_manquant"]
     lignes = [(str(dept), colonne, pct)
               for dept, rapport in (nettoyage or {}).items()
@@ -629,13 +608,11 @@ class StatAnalyzer():
         """Calcule toutes les analyses.
 
         Args:
-            data: {departement: DataFrame propre}, tel que renvoyé par
-                  DataRepository.load_processed()
-            nettoyage: rapport du nettoyage (DataPreprocessor.rapport()), tel que renvoyé par
-                  DataRepository.load_nettoyage() ; None si le snapshot n'en a pas
+            data: {departement: DataFrame propre}, de DataRepository.load_processed()
+            nettoyage: rapport du nettoyage, de DataRepository.load_nettoyage() ; None si absent
 
         Returns:
-            {nom_analyse: DataFrame}, prêt pour DataRepository.save_stats()
+            {nom_analyse: DataFrame}
         """
         # On ne garde que les colonnes utiles : inutile de charger les ~160 colonnes
         df = pd.concat(

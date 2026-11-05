@@ -1,28 +1,19 @@
 """
-Audit des colonnes d'un snapshot brut, sans fichier de référence à maintenir. Deux contrôles :
-1. les colonnes UTILISÉES PAR LE CODE (nettoyage, formulaire des modèles, statistiques) sont-elles
-   toutes présentes ? Les listes sont lues dans le code lui-même : rien à recopier ;
-2. par rapport au snapshot PRÉCÉDENT : quelles colonnes sont nouvelles, lesquelles ont disparu ?
-   Les nouvelles sont décrites (type, manquants, exemples, suggestion).
+Audit des colonnes d'un snapshot brut :
+1. colonnes utilisées par le code (nettoyage, modèles, statistiques) absentes ;
+2. colonnes nouvelles ou disparues depuis le snapshot précédent.
 
-Le nettoyage garde toutes les colonnes, sauf celles trop vides : une colonne nouvelle entre donc
-automatiquement dans les données propres. Une colonne obligatoire ou une variable du formulaire
-absente arrête le nettoyage ou l'entraînement (ColonnesManquantesError) ; une colonne des
-statistiques absente donne un tableau vide : l'audit est le seul à la signaler.
-
-Lancé comme étape "audit" du pipeline (src/train.py) :
-    python -m src.train --audit                       # dernier snapshot
-    python -m src.train --audit --snapshot 2026-10-18_101500
-Sortie : affichage + docs/audit_<snapshot>.csv (s'il y a des colonnes nouvelles)
+Lancement : python -m src.orchestration.train --audit [--snapshot <id>]
+Sortie : affichage + docs/audit_<snapshot>.csv (si colonnes nouvelles).
 """
 import pandas as pd
 
 from .analysis import COLONNES_UTILES
 from .preprocessing import COLONNES_CREEES, COLONNES_OBLIGATOIRES, SEUIL_MANQUANT
-from .models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, PREFIXES_FUITE, PREFIXES_CALCUL, VARIABLES_FORMULAIRE
+from ..models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, PREFIXES_FUITE, PREFIXES_CALCUL, VARIABLES_FORMULAIRE
 
 # Seuils de l'audit (critères calculés, pas de liste codée en dur).
-# SEUIL_MANQUANT est celui du nettoyage (src/preprocessing.py).
+# SEUIL_MANQUANT est celui du nettoyage (src/processing/preprocessing.py).
 SEUIL_CORRELATION = 0.9   # quasi-identique à la consommation : fuite probable
 
 # Familles de colonnes qui contiennent (ou reflètent) la réponse : PREFIXES_FUITE et PREFIXES_CALCUL,

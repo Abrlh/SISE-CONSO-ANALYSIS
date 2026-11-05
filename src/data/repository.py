@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 from .api_client import AdemeApiClient
-from ..storage import LocalStorage, Storage
+from ..storage.storage import LocalStorage, Storage
 
 class DataRepository():
     NB_DEPARTEMENTS = 3
@@ -97,7 +97,7 @@ class DataRepository():
         """
         snapshots = self.list_snapshots()
         if not snapshots:
-            raise FileNotFoundError("Aucun snapshot complet dans data/raw. Lancez d'abord : python -m src.refresh")
+            raise FileNotFoundError("Aucun snapshot complet dans data/raw. Lancez d'abord : python -m src.orchestration.refresh")
         return snapshots[-1]
 
 
@@ -161,7 +161,7 @@ class DataRepository():
         """
         meta_path = self.__processed_root / snapshot_id / "meta.json"
         if not meta_path.exists():
-            raise FileNotFoundError(f"Pas de données prétraitées pour le snapshot {snapshot_id}. Lancez : python -m src.train --preprocess")
+            raise FileNotFoundError(f"Pas de données prétraitées pour le snapshot {snapshot_id}. Lancez : python -m src.orchestration.train --preprocess")
         departements = json.loads(meta_path.read_text())["departements"]
         return {d: self.__processed_storage.load(path=f"{snapshot_id}/{d}.parquet") for d in departements}
 
@@ -227,7 +227,7 @@ class DataRepository():
         """
         meta_path = self.__stats_root / snapshot_id / "meta.json"
         if not meta_path.exists():
-            raise FileNotFoundError(f"Pas de statistiques pour le snapshot {snapshot_id}. Lancez : python -m src.train --snapshot {snapshot_id} --stats")
+            raise FileNotFoundError(f"Pas de statistiques pour le snapshot {snapshot_id}. Lancez : python -m src.orchestration.train --snapshot {snapshot_id} --stats")
         return json.loads(meta_path.read_text())["stats"]
 
 

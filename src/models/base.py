@@ -11,10 +11,11 @@ class BaseModel(ABC):
 
     @abstractmethod
     def train(self, X:pd.DataFrame,Y:pd.Series)->None:
-        """ Train the model with the provided features and target values.
+        """Entraîne le modèle.
+
         Args:
-            X (pd.DataFrame): The input features for training.
-            Y (pd.Series): The target values for training.
+            X: variables d'entrée
+            Y: cible
         """
         pass
 
@@ -25,20 +26,21 @@ class BaseModel(ABC):
         pass
 
     def tableaux_evaluation(self, X:pd.DataFrame, y:pd.Series, y_train:pd.Series)-> dict[str, pd.DataFrame]:
-        """Données de performance pour le front (des tableaux à tracer, pas des images),
-        calculées sur le jeu de test (X, y). y_train sert à la référence naïve.
+        """Tableaux de performance pour le front, calculés sur le jeu de test (X, y).
+
+        Args:
+            y_train: sert à la référence naïve
 
         Returns:
-            {nom_tableau: DataFrame}, enregistrés avec le modèle par ModelRegistry
+            {nom_tableau: DataFrame}
         """
         pass
 
     def importance_variables(self, X:pd.DataFrame, y:pd.Series, scoring:str, n:int=5000)-> pd.DataFrame:
-        """Importance par permutation (comme dans le notebook) : on mélange une variable et on mesure
-        de combien le score baisse. Calculée sur un échantillon de n lignes pour rester rapide.
+        """Importance par permutation, calculée sur un échantillon de n lignes.
 
         Returns:
-            colonnes variable, importance (baisse moyenne du score), ecart_type ; la plus importante d'abord
+            DataFrame variable, importance, ecart_type, la plus importante d'abord
         """
         echantillon = X.sample(min(n, len(X)), random_state=42)
         res = permutation_importance(self.model, echantillon, y.loc[echantillon.index], scoring=scoring,

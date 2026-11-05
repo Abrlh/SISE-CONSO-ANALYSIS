@@ -12,7 +12,7 @@ Le snapshot de référence contient environ 389 000 logements (3 départements, 
 
 On sépare donc deux temps :
 
-1. **Calcul (une fois par snapshot)** : `python -m src.train --snapshot <id> --stats` produit 20 petits tableaux, enregistrés sur disque.
+1. **Calcul (une fois par snapshot)** : `python -m src.orchestration.train --snapshot <id> --stats` produit 20 petits tableaux, enregistrés sur disque.
 2. **Lecture (à chaque affichage)** : l'application lit ces tableaux et sélectionne des lignes. Elle ne calcule rien.
 
 Avantages :
@@ -41,20 +41,20 @@ Commandes (à la racine du projet, environnement virtuel actif) :
 
 | Commande | Effet |
 |---|---|
-| `python -m src.train` | enchaîne téléchargement, nettoyage et statistiques |
-| `python -m src.train --snapshot <id> --stats` | recalcule seulement les statistiques d'un snapshot déjà nettoyé |
-| `python -m src.train --snapshot <id> --preprocess` | refait le nettoyage (les statistiques deviennent alors périmées : relancer `--stats`) |
+| `python -m src.orchestration.train` | enchaîne téléchargement, nettoyage et statistiques |
+| `python -m src.orchestration.train --snapshot <id> --stats` | recalcule seulement les statistiques d'un snapshot déjà nettoyé |
+| `python -m src.orchestration.train --snapshot <id> --preprocess` | refait le nettoyage (les statistiques deviennent alors périmées : relancer `--stats`) |
 
 Snapshot de référence utilisé pour ce document : `2026-10-12_132605` (départements 59, 69, 75 ; 393 952 lignes brutes, 388 717 après nettoyage).
 
 ## 3. Où sont les fichiers
 
-- **Calcul** : `src/analysis.py`, classe `StatAnalyzer` (méthode `compute_all`).
+- **Calcul** : `src/processing/analysis.py`, classe `StatAnalyzer` (méthode `compute_all`).
 - **Stockage** : `src/data/repository.py` (`DataRepository`)
   - `save_stats(snapshot_id, tableaux)` : écrit un fichier `<nom>.parquet` par tableau, puis **en dernier** `meta.json`.
   - `list_stats(snapshot_id)`, `load_stat(snapshot_id, nom)`, `list_stats_snapshots()`.
   - `save_processed(..., nettoyage)` écrit le bilan du nettoyage dans le `meta.json` des données nettoyées ; `load_nettoyage(snapshot_id)` le relit (dictionnaire vide si le snapshot n'en a pas).
-- **Lecture** : `src/service.py` (`AppService.get_stat(nom)`), qui choisit automatiquement le snapshot le plus récent et garde les tableaux en mémoire.
+- **Lecture** : `src/orchestration/service.py` (`AppService.get_stat(nom)`), qui choisit automatiquement le snapshot le plus récent et garde les tableaux en mémoire.
 
 Un snapshot dont `meta.json` est absent est considéré comme incomplet et ignoré : un calcul interrompu ne peut donc jamais être affiché.
 
@@ -211,10 +211,10 @@ Pour `qualite_donnees`, une colonne retirée au nettoyage (trop vide) apparaît 
 - Lancer : `python -m pytest tests -q`.
 
 **Ajouter une analyse**
-1. Écrire la fonction dans `src/analysis.py` (entrée : un DataFrame ; sortie : un DataFrame ; tableau vide si une colonne manque).
+1. Écrire la fonction dans `src/processing/analysis.py` (entrée : un DataFrame ; sortie : un DataFrame ; tableau vide si une colonne manque).
 2. L'ajouter à `ANALYSES`.
 3. Ajouter un test sur le jeu de 8 logements.
-4. Relancer `python -m src.train --snapshot <id> --stats`.
+4. Relancer `python -m src.orchestration.train --snapshot <id> --stats`.
 
 **Après un rafraîchissement des données** : relancer `--preprocess` (qui enregistre aussi le bilan du nettoyage) puis `--stats` (ou la commande complète) ; l'application prend le snapshot le plus récent.
 

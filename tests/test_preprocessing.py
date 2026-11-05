@@ -1,5 +1,5 @@
 """
-Tests unitaires du nettoyage (src/preprocessing.py).
+Tests unitaires du nettoyage (src/processing/preprocessing.py).
 
 Principe : on fabrique de tout petits tableaux avec des cas pièges (valeurs juste
 dans la limite, juste au-dessus, manquantes...) et on vérifie qu'une règle fait
@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src import preprocessing as prep
-from src.preprocessing import (
+from src.processing import preprocessing as prep
+from src.processing.preprocessing import (
     DataPreprocessor,
     exclure_immeubles,
     extraire_coordonnees,

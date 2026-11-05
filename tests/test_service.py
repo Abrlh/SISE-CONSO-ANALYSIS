@@ -1,5 +1,5 @@
 """
-Tests unitaires du service de l'application (src/service.py) : lecture des statistiques.
+Tests unitaires du service de l'application (src/orchestration/service.py) : lecture des statistiques.
 On utilise un faux dépôt en mémoire : aucun fichier n'est lu.
 
 Lancer : python -m pytest tests/test_service.py -v
@@ -7,7 +7,7 @@ Lancer : python -m pytest tests/test_service.py -v
 import pandas as pd
 import pytest
 
-from src.service import AppService
+from src.orchestration.service import AppService
 
 
 class FauxDepot:

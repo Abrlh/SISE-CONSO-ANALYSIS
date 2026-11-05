@@ -3,22 +3,18 @@ import argparse
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from .data.repository import DataRepository
-from .audit_colonnes import auditer, afficher
-from .preprocessing import DataPreprocessor
-from .analysis import StatAnalyzer
-from .models.registry import ModelRegistry
-from .models.classification import ClassificationModel
-from .models.regression import RegressionModel
-from .models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, preparer_xy
+from ..data.repository import DataRepository
+from ..processing.audit_colonnes import auditer, afficher
+from ..processing.preprocessing import DataPreprocessor
+from ..processing.analysis import StatAnalyzer
+from ..models.registry import ModelRegistry
+from ..models.classification import ClassificationModel
+from ..models.regression import RegressionModel
+from ..models.features import CIBLE_CLASSIFICATION, CIBLE_REGRESSION, preparer_xy
 
 
 class TrainingPipeline():
-    """
-    Starting point for the training pipeline. 
-    Responsible for orchestrating the training process, 
-    including data loading, preprocessing, model training, and evaluation.
-    """
+    """Pipeline d'entraînement : chargement, audit, prétraitement, statistiques, entraînement."""
     def __init__(self):
 
         self.__preprocessor:DataPreprocessor = DataPreprocessor()
@@ -32,8 +28,7 @@ class TrainingPipeline():
     STEPS = ("load", "audit", "preprocess", "stats", "train")
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
-        """
-        Run the training pipeline for a given snapshot ID.
+        """Lance les étapes demandées du pipeline sur un snapshot.
 
         Args:
             steps: étapes à exécuter, parmi STEPS
@@ -102,8 +97,7 @@ class TrainingPipeline():
     ##########################
     # 1 bis audit des colonnes
     def audit(self, snapid:str, datasets:dict|None=None)-> tuple:
-        """Contrôle les colonnes du snapshot : colonnes utilisées par le code absentes, colonnes
-        nouvelles ou disparues par rapport au snapshot précédent (voir src/audit_colonnes.py).
+        """Contrôle les colonnes du snapshot (voir src/processing/audit_colonnes.py).
 
         Args:
             snapid: id du snapshot
@@ -196,8 +190,7 @@ class TrainingPipeline():
               "regression": (RegressionModel, CIBLE_REGRESSION)}
 
     def train(self, snapid:str, processed:dict|None=None)-> dict:
-        """Entraîne un modèle par tâche (TACHES) et par département, l'évalue et l'enregistre
-        dans models/<snapid>/<tache>/<departement>/.
+        """Entraîne, évalue et enregistre un modèle par tâche et par département.
 
         Args:
             snapid: id du snapshot
@@ -234,7 +227,7 @@ class TrainingPipeline():
 
 
 if __name__ == "__main__":
-    # Options de la ligne de commande, ex. : python -m src.train --refresh
+    # Options de la ligne de commande, ex. : python -m src.orchestration.train --refresh
     
 
     parser = argparse.ArgumentParser(description="Entraîne les modèles à partir d'un snapshot des données ADEME.")

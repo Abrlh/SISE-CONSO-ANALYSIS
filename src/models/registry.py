@@ -12,8 +12,7 @@ from .base import BaseModel
 
 
 class ModelRegistry():
-    """
-    A registry to save, load and get information about model used
+    """Enregistre, recharge et décrit les modèles entraînés.
 
     Arborescence :
         models/<snapshot_id>/<tache>/<departement>/model.joblib
@@ -32,8 +31,7 @@ class ModelRegistry():
 
     def save(self, tache:str, departement:str, snapid:str, model:BaseModel, metadata:dict[str, Any],
              evaluation:dict[str, pd.DataFrame]|None=None)-> Path:
-        """
-        Save a model and its metadata to a file.
+        """Enregistre un modèle, ses métadonnées et ses tableaux de performance.
 
         Args:
             tache: ex. "classification"
@@ -81,7 +79,7 @@ class ModelRegistry():
             snapshots = self.list_snapshots(tache, departement)
             if not snapshots:
                 raise FileNotFoundError(f"Aucun modèle {tache} pour le département {departement}. "
-                                        f"Lancez : python -m src.train --train")
+                                        f"Lancez : python -m src.orchestration.train --train")
             snapid = snapshots[-1]
         return json.loads((self.__root / snapid / tache / departement / "meta.json").read_text())
 

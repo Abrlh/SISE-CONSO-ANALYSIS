@@ -1,11 +1,11 @@
 """
-Tests unitaires de l'audit des colonnes (src/audit_colonnes.py). Données factices : aucun fichier lu.
+Tests unitaires de l'audit des colonnes (src/processing/audit_colonnes.py). Données factices : aucun fichier lu.
 
 Lancer : python -m pytest tests/test_audit.py -v
 """
 import pandas as pd
 
-from src.audit_colonnes import auditer, colonnes_utilisees
+from src.processing.audit_colonnes import auditer, colonnes_utilisees
 
 
 def brut():
