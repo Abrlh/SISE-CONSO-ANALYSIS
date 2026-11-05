@@ -12,8 +12,8 @@ from src.models.classification import ClassificationModel
 from src.models.features import VARIABLES_FORMULAIRE, preparer_xy
 from src.models.regression import RegressionModel
 from src.models.registry import ModelRegistry
-from src.preprocessing import ColonnesManquantesError
-from src.service import AppService
+from src.processing.preprocessing import ColonnesManquantesError
+from src.orchestration.service import AppService
 
 
 def donnees(n=120):
@@ -56,7 +56,7 @@ def test_preparer_xy_bloque_si_une_variable_manque():
 
 
 def test_meme_erreur_au_nettoyage_et_aux_modeles():
-    from src.preprocessing import verifier_colonnes_obligatoires
+    from src.processing.preprocessing import verifier_colonnes_obligatoires
     with pytest.raises(ColonnesManquantesError) as erreur:
         verifier_colonnes_obligatoires(donnees().drop(columns="numero_dpe"))
     assert erreur.value.colonnes == ["numero_dpe"]

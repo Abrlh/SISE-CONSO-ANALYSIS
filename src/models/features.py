@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ..preprocessing import verifier_colonnes
+from ..processing.preprocessing import verifier_colonnes
 
 CIBLE_CLASSIFICATION = "etiquette_dpe"
 CIBLE_REGRESSION = "conso_5_usages_par_m2_ef"

@@ -1,15 +1,11 @@
-from .data.repository import DataRepository
-from .analysis import StatAnalyzer
-from .models.registry import ModelRegistry
+from ..data.repository import DataRepository
+from ..processing.analysis import StatAnalyzer
+from ..models.registry import ModelRegistry
 import numpy as np
 import pandas as pd
 
 class AppService():
-    """
-    Starting point for the application service.
-    Responsible for orchestrating the application logic,
-    including data loading, preprocessing, statistical analysis, model info
-    """
+    """Façade : seul point d'entrée du front vers les données, les statistiques et les modèles."""
 
     def __init__(self, repository:DataRepository|None=None, registry:ModelRegistry|None=None):
         self.__repository:DataRepository = repository if repository is not None else DataRepository()
@@ -26,7 +22,7 @@ class AppService():
         if self.__snapshot_stats is None:
             snapshots = self.__repository.list_stats_snapshots()
             if not snapshots:
-                raise FileNotFoundError("Aucune statistique calculée. Lancez : python -m src.train --stats")
+                raise FileNotFoundError("Aucune statistique calculée. Lancez : python -m src.orchestration.train --stats")
             self.__snapshot_stats = snapshots[-1]
         return self.__snapshot_stats
 

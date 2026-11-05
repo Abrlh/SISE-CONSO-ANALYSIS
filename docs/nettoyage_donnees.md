@@ -3,7 +3,7 @@
 Ce document explique, de bout en bout, ce qui est fait sur les données avant l'analyse et la modélisation : **quelles données utiliser, où les trouver, pourquoi elles sont faites ainsi, et comment les rafraîchir** quand un nouveau snapshot arrive.
 Il est écrit pour que chacun, sans avoir suivi le travail de nettoyage, puisse comprendre les choix et les remettre en cause s'il le faut.
 
-Pour le détail technique : le code est dans `src/preprocessing.py` (nettoyage) et `src/audit_colonnes.py` (contrôle des colonnes à chaque rafraîchissement).
+Pour le détail technique : le code est dans `src/processing/preprocessing.py` (nettoyage) et `src/processing/audit_colonnes.py` (contrôle des colonnes à chaque rafraîchissement).
 Les décisions sont argumentées dans `notebooks/02_nettoyage_donnees.ipynb`, et les lignes retirées par règle sont dans `docs/bilan_nettoyage.csv`.
 
 **Le principe en une phrase : le nettoyage corrige les erreurs et retire ce qui est inutilisable, mais il ne choisit pas les variables.** Toutes les colonnes de l'API sont conservées, sauf celles qui sont presque vides. Le choix des variables, le remplissage des valeurs manquantes, l'encodage et la découpe entraînement / test se feront à l'analyse et à la modélisation, avec l'ensemble de l'équipe.
@@ -16,7 +16,7 @@ Les données viennent de l'API de l'ADEME (DPE des logements existants et neufs)
 
 ```
 data/raw/<snapshot>/        données brutes de l'API, telles que reçues (un sous-dossier par département)
-        │   nettoyage  (src/preprocessing.py)
+        │   nettoyage  (src/processing/preprocessing.py)
         ▼
 data/processed/<snapshot>/  données propres, toutes colonnes sauf les presque vides,
                             un fichier par département                                  ← ANALYSE et MODÈLES
@@ -56,7 +56,7 @@ Les fichiers de `data/processed` pèsent plus de 130 Mo en tout (de 38 à 51 Mo 
 
 Attention : des anciennes versions de ces fichiers sont encore suivies par Git (reste d’un ancien commit). Après un clone ou un pull, relancez toujours la commande ci-dessous, qui les écrase.
 ```
-python -m src.train --snapshot 2026-10-12_132605 --preprocess
+python -m src.orchestration.train --snapshot 2026-10-12_132605 --preprocess
 ```
 
 Après un `pull`, cette commande recrée `data/processed/2026-10-12_132605/`. Le résultat est identique pour tout le monde, puisque le code et les données brutes sont les mêmes.
@@ -77,7 +77,7 @@ Sur le snapshot de référence, 66 à 74 colonnes sont retirées selon le dépar
 **Pourquoi 80 % ?** Beaucoup de colonnes ne concernent qu'une partie des logements (par exemple les maisons seulement) et sont naturellement vides pour les autres : un seuil bas retirerait des colonnes utiles. 80 % ne retire que les colonnes quasiment inutilisables. Le seuil est modifiable (une seule valeur) et à rediscuter avec l'équipe.
 
 ### Les nouvelles colonnes entrent automatiquement
-Il n'y a plus de liste blanche : si l'API ajoute une colonne lors d'un rafraîchissement, elle est conservée (sauf si elle est trop vide). `src/audit_colonnes.py` permet de la repérer (section 6).
+Il n'y a plus de liste blanche : si l'API ajoute une colonne lors d'un rafraîchissement, elle est conservée (sauf si elle est trop vide). `src/processing/audit_colonnes.py` permet de la repérer (section 6).
 
 ### Les colonnes qui donnent la réponse (à ne pas utiliser en entrée d'un modèle)
 Les **cibles** sont `etiquette_dpe` (classification A à G) et `conso_5_usages_par_m2_ef` (régression, kWh/m²/an, énergie finale), définies dans `src/models/features.py`.
@@ -97,9 +97,9 @@ Le sens des colonnes est déduit de leur nom : à confirmer dans le dictionnaire
 
 ## 4. Le nettoyage, règle par règle
 
-Le code est dans `src/preprocessing.py`. Une fonction par règle, et tous les seuils sont des constantes en haut du fichier : pour changer un seuil, un seul endroit à modifier.
+Le code est dans `src/processing/preprocessing.py`. Une fonction par règle, et tous les seuils sont des constantes en haut du fichier : pour changer un seuil, un seul endroit à modifier.
 Le nettoyage s'applique **séparément à chaque département**, après fusion des logements existants et neufs (la colonne `origine` garde la trace de la provenance).
-Il se lance avec `python -m src.train --snapshot <id> --preprocess` (lit `data/raw/<id>/`, écrit `data/processed/<id>/`).
+Il se lance avec `python -m src.orchestration.train --snapshot <id> --preprocess` (lit `data/raw/<id>/`, écrit `data/processed/<id>/`).
 
 ### 4.1 Les règles qui retirent des lignes
 Sur le snapshot `2026-10-12_132605`, dans l'ordre d'application :
@@ -170,20 +170,20 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 
 | Étape | Commande | Rôle |
 |---|---|---|
-| 1. Récupérer | `python -m src.refresh` | télécharge les données brutes dans `data/raw/<id>/` |
-| 2. Auditer | `python -m src.train --snapshot <id> --audit` | colonnes utilisées par le code absentes ; colonnes apparues ou disparues depuis le snapshot précédent |
-| 3. Nettoyer | `python -m src.train --snapshot <id> --preprocess` | écrit `data/processed/<id>/` |
+| 1. Récupérer | `python -m src.orchestration.refresh` | télécharge les données brutes dans `data/raw/<id>/` |
+| 2. Auditer | `python -m src.orchestration.train --snapshot <id> --audit` | colonnes utilisées par le code absentes ; colonnes apparues ou disparues depuis le snapshot précédent |
+| 3. Nettoyer | `python -m src.orchestration.train --snapshot <id> --preprocess` | écrit `data/processed/<id>/` |
 | 4. Contrôler | (voir ci-dessous) | bilan des lignes et colonnes retirées |
 | 5. Documenter | éditer ce document si une décision change | |
 
 ### Étape 1 : obtenir le snapshot
-`python -m src.refresh` interroge l'API de l'ADEME et ne télécharge que si l'ADEME a publié une version plus récente que le dernier snapshot (le téléchargement se fait page par page). On peut aussi l'obtenir avec `python -m src.train --refresh`.
+`python -m src.orchestration.refresh` interroge l'API de l'ADEME et ne télécharge que si l'ADEME a publié une version plus récente que le dernier snapshot (le téléchargement se fait page par page). On peut aussi l'obtenir avec `python -m src.orchestration.train --refresh`.
 À confirmer : `train.py` appelle `refresh(size=10000)` en dur ; est-ce une taille de page ou un plafond du nombre de lignes ? Le plafond de 100 000 logements existants par département du snapshot actuel doit être documenté ici.
 Attention : cette commande lance un vrai téléchargement (`--help` ne l'en empêche pas).
 
 ### Étape 2 : auditer les colonnes (à lancer avant de nettoyer)
-`python -m src.train --audit` (ou `--snapshot <id> --audit`) contrôle les colonnes brutes du snapshot. Il **ne modifie rien** et n'a **aucun fichier de référence à tenir à jour**. Il affiche :
-- **Colonnes utilisées par le code absentes** : doit afficher *toutes présentes*. Les listes sont lues dans le code : colonnes obligatoires du nettoyage, variables du formulaire des modèles (`src/models/features.py`), colonnes des statistiques (`src/analysis.py`). Pour chaque colonne absente, l'usage est indiqué. Une colonne obligatoire ou une variable du formulaire absente arrêtera de toute façon le nettoyage ou l'entraînement (`ColonnesManquantesError`) ; une colonne des statistiques absente donnera un tableau vide.
+`python -m src.orchestration.train --audit` (ou `--snapshot <id> --audit`) contrôle les colonnes brutes du snapshot. Il **ne modifie rien** et n'a **aucun fichier de référence à tenir à jour**. Il affiche :
+- **Colonnes utilisées par le code absentes** : doit afficher *toutes présentes*. Les listes sont lues dans le code : colonnes obligatoires du nettoyage, variables du formulaire des modèles (`src/models/features.py`), colonnes des statistiques (`src/processing/analysis.py`). Pour chaque colonne absente, l'usage est indiqué. Une colonne obligatoire ou une variable du formulaire absente arrêtera de toute façon le nettoyage ou l'entraînement (`ColonnesManquantesError`) ; une colonne des statistiques absente donnera un tableau vide.
 - **Par rapport au snapshot précédent** : les colonnes **disparues**, et les colonnes **nouvelles**, avec leur type, leur taux de manquants, des exemples de valeurs et une indication : « **ATTENTION** » (famille qui contient la réponse, à ne pas utiliser en entrée d'un modèle), « **Sera retirée par le nettoyage** » (vide à plus de 80 %), ou « **Entrera dans les données propres** ». Pour le premier snapshot, cette comparaison est sautée.
 
 Un renommage par l'API apparaît comme une colonne disparue et une colonne nouvelle.
@@ -191,12 +191,12 @@ Les colonnes nouvelles sont aussi écrites dans `docs/audit_<snapshot>.csv`.
 Le lancer à chaque **nouveau snapshot**, pas quand on relance le nettoyage sur le même snapshot.
 
 ### Étape 3 : nettoyer
-`python -m src.train --snapshot <id> --preprocess`. Sans aucune option, `python -m src.train` enchaîne le chargement et le nettoyage.
+`python -m src.orchestration.train --snapshot <id> --preprocess`. Sans aucune option, `python -m src.orchestration.train` enchaîne le chargement et le nettoyage.
 
 ### Étape 4 : contrôler le bilan
 Afficher, pour chaque département, la taille du résultat, le nombre de lignes restantes après chaque règle, et les colonnes retirées :
 ```
-python -c "from src.data.repository import DataRepository as R; from src.preprocessing import DataPreprocessor as P; r=R(); p=P(); out=p.process(r.load('<id>')); [print(d, out[d].shape, chr(10), p.bilans[d].to_string(), chr(10), p.colonnes_retirees[d].to_string()) for d in out]"
+python -c "from src.data.repository import DataRepository as R; from src.processing.preprocessing import DataPreprocessor as P; r=R(); p=P(); out=p.process(r.load('<id>')); [print(d, out[d].shape, chr(10), p.bilans[d].to_string(), chr(10), p.colonnes_retirees[d].to_string()) for d in out]"
 ```
 Ce qu'on cherche : le total retiré reste de l'ordre de 1 à 2 % ; aucune règle ne retire soudain beaucoup plus que d'habitude ; les colonnes retirées sont bien des colonnes quasi vides. Une règle qui s'emballe (par exemple la surface à Paris avec l'ancien seuil de 9 m²) est le signe qu'un seuil n'est plus adapté. C'est comme cela que ce seuil a été corrigé.
 (`docs/bilan_nettoyage.csv` est écrit par le notebook ; `train.py` n'enregistre pas le bilan.)
@@ -212,7 +212,7 @@ Mettre à jour ce document si une décision a changé, puis enregistrer (commit)
 | Variable du formulaire absente | oui : arrêt de l'entraînement (`ColonnesManquantesError`, la même erreur) |
 | Colonne des statistiques absente | tableau vide ; **signalé par l'audit (étape 2)** |
 | Autre colonne disparue | les règles qui en dépendent sont ignorées ; **signalé par l'audit (étape 2)** |
-| Nouvelle colonne de l'API | conservée automatiquement si elle n'est pas trop vide ; **repérée par l'audit (étape 2, lancée par `python -m src.train`)** |
+| Nouvelle colonne de l'API | conservée automatiquement si elle n'est pas trop vide ; **repérée par l'audit (étape 2, lancée par `python -m src.orchestration.train`)** |
 | Valeur d'une catégorie renommée par l'API | **non détecté** : la valeur est traitée comme inconnue par les modèles |
 | Colonne qui contient la réponse | **non filtrée** ; signalée par l'audit seulement |
 | Seuils adaptés aux nouvelles données | **non** : à vérifier avec le bilan (étape 4) |

@@ -1,4 +1,4 @@
-from .data.repository import DataRepository
+from ..data.repository import DataRepository
 
 
 if __name__ == "__main__":

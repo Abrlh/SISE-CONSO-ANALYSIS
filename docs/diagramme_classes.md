@@ -34,8 +34,8 @@ Application Streamlit dockerisée d'analyse des DPE (API ADEME) : récupération
 ## Flux
 
 ```
-[1] Rafraîchir   python -m src.refresh   API ADEME -> data/raw/<snapshot_id>/   (facultatif, voir [2])
-[2] Entraîner    python -m src.train     snapshot -> prétraitement -> models/<version>/   (manuel, annuel)
+[1] Rafraîchir   python -m src.orchestration.refresh   API ADEME -> data/raw/<snapshot_id>/   (facultatif, voir [2])
+[2] Entraîner    python -m src.orchestration.train     snapshot -> prétraitement -> models/<version>/   (manuel, annuel)
                  Réutilise le dernier snapshot, télécharge seulement s'il n'y en a aucun.
                  --refresh : télécharge un nouveau snapshot   --snapshot <id> : utilise ce snapshot
 [3] Servir       streamlit run app/main.py   dernier snapshot + dernier modèle, lecture seule
@@ -56,20 +56,22 @@ models/latest          # nom de la version en service
 ```
 config/
   tasks.yaml
-src/
-  config.py              # Settings
-  storage.py             # Storage, LocalStorage
-  data/api_client.py     # AdemeApiClient
-  data/repository.py     # DataRepository
-  preprocessing.py       # DataPreprocessor
-  analysis.py            # StatsAnalyzer
-  models/base.py         # BaseModel
+src/                                 # un dossier par couche du diagramme
+  config/settings.py                 # Configuration : Settings
+  storage/storage.py                 # Stockage : Storage, LocalStorage
+  data/api_client.py                 # Données : AdemeApiClient
+  data/repository.py                 # Données : DataRepository
+  processing/preprocessing.py        # Traitement : DataPreprocessor
+  processing/analysis.py             # Traitement : StatsAnalyzer
+  processing/audit_colonnes.py       # Traitement : audit des colonnes
+  models/base.py                     # Modèles : BaseModel
   models/classification.py
   models/regression.py
-  models/registry.py     # ModelRegistry
-  refresh.py             # point d'entrée [1]
-  train.py               # TrainingPipeline, point d'entrée [2]
-  service.py             # AppService
+  models/features.py                 # cibles et variables du formulaire
+  models/registry.py                 # Modèles : ModelRegistry
+  orchestration/refresh.py           # point d'entrée [1]
+  orchestration/train.py             # TrainingPipeline, point d'entrée [2]
+  orchestration/service.py           # AppService
 app/
   main.py                # StreamlitApp
   pages/data.py
