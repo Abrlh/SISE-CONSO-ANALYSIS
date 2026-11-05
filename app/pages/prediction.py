@@ -1,41 +1,52 @@
 """Page « Prédiction » : formulaire de saisie d'un logement.
 
-Page de saisie uniquement : le calcul de l'estimation et l'apprentissage seront branchés
-plus tard, quand les modèles de l'équipe seront prêts.
+Les champs du formulaire et leurs choix viennent des modèles entraînés (AppService.formulaire).
+Page de saisie uniquement : le calcul de l'estimation et l'apprentissage seront branchés plus tard.
 """
 
 import streamlit as st
 
-from lecture import charger_ou_arreter
+from affichage import nom_departement
+from deps import get_service
 
 st.title("Prédiction")
 st.write("Décrivez un logement pour estimer son étiquette DPE et sa consommation.")
 
-donnees, meta = charger_ou_arreter()
+try:
+    formulaire = get_service().formulaire()
+except FileNotFoundError as erreur:
+    st.error(f"Modèles introuvables : {erreur}")
+    st.stop()
 
-# Les choix proposés sont les valeurs présentes dans les données
-CHAMPS_CHOIX = {
-    "periode_construction": "Période de construction",
-    "type_batiment": "Type de bâtiment",
-    "type_energie_principale_chauffage": "Énergie principale de chauffage",
-    "type_installation_chauffage": "Installation de chauffage",
-    "type_installation_ecs": "Installation d'eau chaude",
-    "qualite_isolation_enveloppe": "Isolation de l'enveloppe",
-    "qualite_isolation_murs": "Isolation des murs",
-    "qualite_isolation_menuiseries": "Isolation des menuiseries",
-    "qualite_isolation_plancher_bas": "Isolation du plancher bas",
-    "origine": "Origine du logement",
-}
+
+def champs_du_departement(departement):
+    """Champs attendus par les modèles de classification et de régression du département, réunis."""
+    champs = {}
+    for tache in ("classification", "regression"):
+        champs.update(formulaire[tache].get(departement, {}).get("champs", {}))
+    return champs
+
+
+def afficher_champ(colonne, champ):
+    """Affiche le widget d'un champ et renvoie la valeur saisie (None tant que rien n'est saisi)."""
+    libelle = colonne.replace("_", " ").capitalize()
+    if champ["type"] == "choix":
+        return st.selectbox(libelle, champ["choix"], index=None, placeholder="Choisir une valeur")
+    return st.number_input(libelle, min_value=champ["min"], max_value=champ["max"], value=None,
+                           placeholder=f"entre {champ['min']:g} et {champ['max']:g}")
+
 
 gauche, droite = st.columns([3, 2])
 
 with gauche:
+    # hors du formulaire : changer de département met à jour les champs tout de suite
+    departements = sorted(set(formulaire["classification"]) | set(formulaire["regression"]))
+    departement = st.selectbox("Département", departements, format_func=nom_departement)
+
     with st.form("formulaire_logement"):
         st.subheader("Caractéristiques du logement")
-        st.number_input("Surface habitable (m²)", 5.0, 500.0, 60.0)
-        st.number_input("Hauteur sous plafond (m)", 1.5, 6.0, 2.5, step=0.1)
-        for colonne, libelle in CHAMPS_CHOIX.items():
-            st.selectbox(libelle, sorted(donnees[colonne].dropna().unique()))
+        saisies = {colonne: afficher_champ(colonne, champ)
+                   for colonne, champ in champs_du_departement(departement).items()}
         envoye = st.form_submit_button("Estimer ce logement")
 
 with droite:
