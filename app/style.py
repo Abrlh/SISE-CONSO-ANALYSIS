@@ -3,10 +3,8 @@
 Chaque page a sa couleur, choisie dans le thème de l'énergie. Le style est du CSS (la langue des
 couleurs et des mises en forme du web), envoyé à Streamlit sous forme de texte. Aucun calcul ici.
 """
-
 import streamlit as st
 
-# Couleurs douces par page : (fond, trait à gauche, texte)
 COULEURS_PAGES = {
     "Accueil": ("#DCEFD9", "#4CAF7A", "#1F5F3A"),       # vert : énergie verte
     "Contexte": ("#DCEBFA", "#3B82C4", "#1E4E79"),      # bleu : électricité, eau
@@ -35,4 +33,27 @@ def colorer_menu(titre_page):
         </style>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def empecher_traduction():
+    """Indique au navigateur que la page est en français et qu'il ne doit pas la traduire.
+
+    Sans cela, la traduction automatique d'un téléphone réécrit les textes et fait planter l'affichage.
+    """
+    st.iframe(
+        """
+        <script>
+        const doc = window.parent.document;
+        doc.documentElement.lang = "fr";
+        doc.documentElement.setAttribute("translate", "no");
+        if (!doc.querySelector('meta[name="google"]')) {
+            const meta = doc.createElement("meta");
+            meta.name = "google";
+            meta.content = "notranslate";
+            doc.head.appendChild(meta);
+        }
+        </script>
+        """,
+        height=1,
     )
