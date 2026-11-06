@@ -39,7 +39,7 @@ from src.processing.analysis import (
 )
 
 COLONNES = [
-    "origine", "etiquette_dpe", "conso_5_usages_par_m2_ep", "surface_habitable_logement",
+    "origine", "etiquette_dpe", "conso_5_usages_par_m2_ef", "surface_habitable_logement",
     "periode_construction", "type_batiment", "type_energie_principale_chauffage",
     "qualite_isolation_enveloppe", "date_reception_dpe", "latitude", "longitude",
     "nom_commune_ban", "code_insee_ban", "etiquette_ges", "cout_total_5_usages",
@@ -174,7 +174,7 @@ def test_histogramme_chiffres(df):
 
 def test_histogramme_la_valeur_maximale_est_dans_la_derniere_tranche(df):
     df = df.copy()
-    df.loc[0, "conso_5_usages_par_m2_ep"] = 1000      # le plafond du nettoyage
+    df.loc[0, "conso_5_usages_par_m2_ef"] = 1000      # le plafond du nettoyage
     h = distribution_conso(df)
     tous = h[(h["departement"] == "Tous") & (h["origine"] == "Tous")]
     assert tous[tous["borne_min"] == 980]["effectif"].iloc[0] == 1
@@ -326,16 +326,16 @@ def test_etiquette_ges_vs_dpe(df):
 def test_correlations_spearman(df):
     c = correlations(df)
     assert set(c["origine"]) == {"Tous", "dpe_existants", "dpe_neufs"}
-    cg = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ep", variable_y="emission_ges_5_usages_par_m2")
+    cg = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ef", variable_y="emission_ges_5_usages_par_m2")
     assert cg["correlation"] == pytest.approx(1.0)            # elles augmentent ensemble
-    diag = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ep", variable_y="conso_5_usages_par_m2_ep")
+    diag = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ef", variable_y="conso_5_usages_par_m2_ef")
     assert diag["correlation"] == pytest.approx(1.0)
 
 
 def test_correlations_symetriques(df):
     c = correlations(df)
-    xy = ligne(c, origine="Tous", variable_x="surface_habitable_logement", variable_y="conso_5_usages_par_m2_ep")
-    yx = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ep", variable_y="surface_habitable_logement")
+    xy = ligne(c, origine="Tous", variable_x="surface_habitable_logement", variable_y="conso_5_usages_par_m2_ef")
+    yx = ligne(c, origine="Tous", variable_x="conso_5_usages_par_m2_ef", variable_y="surface_habitable_logement")
     assert xy["correlation"] == pytest.approx(yx["correlation"])
 
 
@@ -403,7 +403,7 @@ def test_table_logements(df):
             "tranche_surface", "latitude", "longitude"} <= set(t.columns)
     assert "date_reception_dpe" not in t.columns             # table légère : pas toutes les colonnes
     assert isinstance(t["etiquette_dpe"].dtype, pd.CategoricalDtype)
-    assert t["conso_5_usages_par_m2_ep"].sum() == pytest.approx(1720.0)
+    assert t["conso_5_usages_par_m2_ef"].sum() == pytest.approx(1720.0)
 
 
 # ---------------------------------------------------------------------------
@@ -449,7 +449,7 @@ def test_stats_numeriques_surface(df):
 
 def test_stats_numeriques_contient_toutes_les_variables(df):
     s = stats_numeriques(df)
-    assert set(s["variable"]) == {"conso_5_usages_par_m2_ep", "surface_habitable_logement",
+    assert set(s["variable"]) == {"conso_5_usages_par_m2_ef", "surface_habitable_logement",
                                   "hauteur_sous_plafond", "emission_ges_5_usages_par_m2",
                                   "cout_total_5_usages"}
 
