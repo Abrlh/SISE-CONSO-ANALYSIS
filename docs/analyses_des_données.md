@@ -118,8 +118,7 @@ Les sept étiquettes sont toujours présentes (effectif 0 si nécessaire). Le po
 
 `stats_numeriques` couvre la consommation, la surface, la hauteur sous plafond, les émissions de GES et le coût ; `nb_manquants` compte les cases vides. La hauteur sous plafond vaut presque toujours 2,5 m (quartiles et médiane identiques), probablement une valeur par défaut du DPE : elle apporte peu d'information.
 
-La consommation est `conso_5_usages_par_m2_ep` (kWh d'énergie primaire par m² et par an). L'histogramme utilise des tranches de 20 kWh/m²/an, de 0 à 1 000 (le plafond du nettoyage) ; toutes les tranches existent, même vides.
-
+La consommation est `conso_5_usages_par_m2_ef` (kWh d'énergie finale par m² et par an, sur les 5 usages conventionnels du DPE : chauffage, eau chaude, refroidissement, éclairage et auxiliaires). C'est une consommation estimée selon des hypothèses standard, pas la facture réelle. L'étiquette DPE, elle, est calculée à partir de l'énergie primaire.L'histogramme utilise des tranches de 20 kWh/m²/an, de 0 à 1 000 (le plafond du nettoyage) ; toutes les tranches existent, même vides.
 ### 6.3 Facteurs explicatifs
 
 | Tableau | Question | Colonnes | Taille |
