@@ -23,11 +23,10 @@ def test_colonne_utilisee_absente_signalee_avec_son_usage():
     assert manquantes["type_energie_n1"] == ["formulaire"]
     assert "nettoyage" in manquantes["numero_dpe"]
 
-
 def test_cible_de_la_regression_surveillee():
+    # la colonne sert à la fois au nettoyage, de cible au modèle et de base aux statistiques
     manquantes, _, _ = auditer(brut().drop(columns="conso_5_usages_par_m2_ef"))
-    assert manquantes == {"conso_5_usages_par_m2_ef": ["cible"]}
-
+    assert sorted(manquantes["conso_5_usages_par_m2_ef"]) == ["cible", "nettoyage", "statistiques"]
 
 def test_colonne_creee_par_le_nettoyage_remplacee_par_sa_source():
     # latitude / longitude viennent de _geopoint ; origine est ajoutée à la fusion

@@ -42,7 +42,7 @@ def logements(n=10, **colonnes):
     df = pd.DataFrame({
         "numero_dpe": [f"id{i}" for i in range(n)],
         "etiquette_dpe": ["C"] * n,
-        "conso_5_usages_par_m2_ep": [150.0] * n,
+        "conso_5_usages_par_m2_ef": [150.0] * n,
         "surface_habitable_logement": [60.0] * n,
         "emission_ges_5_usages_par_m2": [20.0] * n,
         "hauteur_sous_plafond": [2.5] * n,
@@ -95,7 +95,7 @@ def test_manquants_cles_retires():
     df = logements(
         4,
         etiquette_dpe=["C", None, "C", "C"],
-        conso_5_usages_par_m2_ep=[150.0, 150.0, np.nan, 150.0],
+        conso_5_usages_par_m2_ef=[150.0, 150.0, np.nan, 150.0],
         surface_habitable_logement=[60.0, 60.0, 60.0, np.nan],
     )
     assert list(supprimer_manquants_cles(df)["numero_dpe"]) == ["id0"]
@@ -119,8 +119,8 @@ def test_surface_bornes_5_et_500_incluses():
 
 def test_consommation_zero_et_au_dessus_de_1000_retires():
     # 0 -> retiré ; 1000 -> gardé ; 1001 -> retiré ; manquant -> retiré
-    df = logements(4, conso_5_usages_par_m2_ep=[0.0, 1000.0, 1001.0, np.nan])
-    assert list(filtrer_consommation(df)["conso_5_usages_par_m2_ep"]) == [1000.0]
+    df = logements(4, conso_5_usages_par_m2_ef=[0.0, 1000.0, 1001.0, np.nan])
+    assert list(filtrer_consommation(df)["conso_5_usages_par_m2_ef"]) == [1000.0]
 
 
 def test_ges_au_dessus_de_1000_retire_mais_manquant_conserve():
@@ -222,7 +222,7 @@ def donnees_brutes():
         type_batiment=["maison", "maison", "immeuble"] + ["maison"] * (n - 3),
         etiquette_dpe=["C", "C", "C", "Z", "C", "C", "C", "C", "C", "C", "C", "C"],  # ligne 3 invalide
         surface_habitable_logement=[60.0] * 4 + [3.0] + [60.0] * 7,                    # ligne 4 trop petite
-        conso_5_usages_par_m2_ep=[150.0] * 5 + [2000.0] + [150.0] * 6,                 # ligne 5 trop forte
+        conso_5_usages_par_m2_ef=[150.0] * 5 + [2000.0] + [150.0] * 6,                 # ligne 5 trop forte
         hauteur_sous_plafond=[2.5] * 6 + [250.0] + [2.5] * 5,                          # ligne 6 corrigée, gardée
         _geopoint=["48.85,2.35"] * 7 + ["10.0,-60.0"] + ["48.85,2.35"] * 4,            # ligne 7 corrigée, gardée
         colonne_nouvelle=["x"] * n,                                                     # colonne inconnue du code

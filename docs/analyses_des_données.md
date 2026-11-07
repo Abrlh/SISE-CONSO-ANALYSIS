@@ -45,7 +45,7 @@ Commandes (à la racine du projet, environnement virtuel actif) :
 | `python -m src.orchestration.train --snapshot <id> --stats` | recalcule seulement les statistiques d'un snapshot déjà nettoyé |
 | `python -m src.orchestration.train --snapshot <id> --preprocess` | refait le nettoyage (les statistiques deviennent alors périmées : relancer `--stats`) |
 
-Snapshot de référence utilisé pour ce document : `2026-10-12_132605` (départements 59, 69, 75 ; 393 952 lignes brutes, 388 717 après nettoyage).
+Snapshot de référence utilisé pour ce document : `2026-10-12_132605` (départements 59, 69, 75 ; 393 952 lignes brutes, 388 833 après nettoyage).
 
 ## 3. Où sont les fichiers
 
@@ -118,8 +118,7 @@ Les sept étiquettes sont toujours présentes (effectif 0 si nécessaire). Le po
 
 `stats_numeriques` couvre la consommation, la surface, la hauteur sous plafond, les émissions de GES et le coût ; `nb_manquants` compte les cases vides. La hauteur sous plafond vaut presque toujours 2,5 m (quartiles et médiane identiques), probablement une valeur par défaut du DPE : elle apporte peu d'information.
 
-La consommation est `conso_5_usages_par_m2_ep` (kWh d'énergie primaire par m² et par an). L'histogramme utilise des tranches de 20 kWh/m²/an, de 0 à 1 000 (le plafond du nettoyage) ; toutes les tranches existent, même vides.
-
+La consommation est `conso_5_usages_par_m2_ef` (kWh d'énergie finale par m² et par an, sur les 5 usages conventionnels du DPE : chauffage, eau chaude, refroidissement, éclairage et auxiliaires). C'est une consommation estimée selon des hypothèses standard, pas la facture réelle. L'étiquette DPE, elle, est calculée à partir de l'énergie primaire. L'histogramme utilise des tranches de 20 kWh/m²/an, de 0 à 1 000 (le plafond du nettoyage) ; toutes les tranches existent, même vides.
 ### 6.3 Facteurs explicatifs
 
 | Tableau | Question | Colonnes | Taille |
@@ -165,7 +164,7 @@ La position d'une commune est la **médiane** des coordonnées de ses logements.
 
 | Tableau | Question | Colonnes | Taille |
 |---|---|---|---|
-| `logements` | Table légère pour filtrer et exporter | 16 colonnes : département, origine, étiquette, consommation, surface, période, type de bâtiment, énergie et famille, tranche de surface, isolation de l'enveloppe, année, commune, code INSEE, latitude, longitude | 388 717 × 16 |
+| `logements` | Table légère pour filtrer et exporter | 16 colonnes : département, origine, étiquette, consommation, surface, période, type de bâtiment, énergie et famille, tranche de surface, isolation de l'enveloppe, année, commune, code INSEE, latitude, longitude | 388 833 × 16 |
 | `qualite_donnees` | Quelle part de cases vides par colonne ? | `departement`, `colonne`, `type`, `pct_manquant`, `presente` | 640 × 5 |
 | `apercu_donnees` | Quelle est la taille des données nettoyées ? | `departement`, `nb_lignes`, `nb_colonnes`, `nb_numeriques`, `nb_dates`, `nb_texte` | 4 × 6 |
 | `bilan_nettoyage` | Combien de lignes retire chaque règle du nettoyage ? | `departement`, `ordre`, `etape`, `lignes`, `lignes_retirees` | 52 × 5 |
@@ -173,7 +172,7 @@ La position d'une commune est la **médiane** des coordonnées de ses logements.
 
 La table `logements` est la seule à contenir une ligne par logement ; les textes y sont stockés en type `category` et les nombres en `float32` pour limiter la mémoire. `apercu_donnees` compte, pour « Tous », chaque colonne une seule fois même si elle existe dans plusieurs départements (d'où 160 colonnes pour « Tous » contre 159, 159 et 156 par département). Les colonnes sont réparties en numériques, dates et textes.
 
-`bilan_nettoyage` a une ligne par règle appliquée (13 règles) et par département, plus « Tous » (somme des départements) ; `lignes` est le nombre de lignes après la règle, `lignes_retirees` celles qu'elle a supprimées. Sur le snapshot de référence : 393 952 lignes brutes, 4 130 immeubles exclus, 708 lignes sans valeur clé, 170 surfaces hors 5-500 m², 197 consommations supérieures à 1 000 et 30 émissions supérieures à 1 000, soit 388 717 lignes finales. Aucun doublon de numéro de DPE n'a été trouvé. `colonnes_retirees` donne le pourcentage de cases vides **avant** retrait, que `qualite_donnees` ne peut pas donner (une colonne retirée y apparaît à 100 %).
+`bilan_nettoyage` a une ligne par règle appliquée (13 règles) et par département, plus « Tous » (somme des départements) ; `lignes` est le nombre de lignes après la règle, `lignes_retirees` celles qu'elle a supprimées. Sur le snapshot de référence : 393 952 lignes brutes, 4 130 immeubles exclus, 708 lignes sans valeur clé, 170 surfaces hors 5-500 m², 81 consommations supérieures à 1 000 (énergie finale) et 30 émissions supérieures à 1 000, soit 388 833 lignes finales. Aucun doublon de numéro de DPE n'a été trouvé. `colonnes_retirees` donne le pourcentage de cases vides **avant** retrait, que `qualite_donnees` ne peut pas donner (une colonne retirée y apparaît à 100 %).
 
 Pour `qualite_donnees`, une colonne retirée au nettoyage (trop vide) apparaît avec `presente = False` et compte pour 100 % de cases vides.
 
