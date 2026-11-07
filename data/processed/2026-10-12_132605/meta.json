@@ -38,27 +38,27 @@
         ],
         [
           "Consommation \u2264 1000",
-          107235
+          107331
         ],
         [
           "\u00c9missions GES \u2264 1000",
-          107235
+          107331
         ],
         [
           "Coordonn\u00e9es extraites",
-          107235
+          107331
         ],
         [
           "Hauteur sous plafond",
-          107235
+          107331
         ],
         [
           "Espaces supprim\u00e9s",
-          107235
+          107331
         ],
         [
           "Colonnes vides \u00e0 plus de 80 % retir\u00e9es",
-          107235
+          107331
         ]
       ],
       "colonnes_retirees": [
@@ -392,27 +392,27 @@
         ],
         [
           "Consommation \u2264 1000",
-          138807
+          138819
         ],
         [
           "\u00c9missions GES \u2264 1000",
-          138807
+          138819
         ],
         [
           "Coordonn\u00e9es extraites",
-          138807
+          138819
         ],
         [
           "Hauteur sous plafond",
-          138807
+          138819
         ],
         [
           "Espaces supprim\u00e9s",
-          138807
+          138819
         ],
         [
           "Colonnes vides \u00e0 plus de 80 % retir\u00e9es",
-          138807
+          138819
         ]
       ],
       "colonnes_retirees": [
@@ -434,7 +434,7 @@
         ],
         [
           "numero_dpe_immeuble_associe",
-          88.5
+          88.4
         ],
         [
           "configuration_installation_chauffage_n2",
@@ -722,27 +722,27 @@
         ],
         [
           "Consommation \u2264 1000",
-          142705
+          142713
         ],
         [
           "\u00c9missions GES \u2264 1000",
-          142675
+          142683
         ],
         [
           "Coordonn\u00e9es extraites",
-          142675
+          142683
         ],
         [
           "Hauteur sous plafond",
-          142675
+          142683
         ],
         [
           "Espaces supprim\u00e9s",
-          142675
+          142683
         ],
         [
           "Colonnes vides \u00e0 plus de 80 % retir\u00e9es",
-          142675
+          142683
         ]
       ],
       "colonnes_retirees": [
