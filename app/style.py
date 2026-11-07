@@ -572,3 +572,111 @@ CSS_FILTRES = """
 def habiller_filtres():
     """Applique le style de la bande de filtres (le contenant s'appelle « bande_filtres »)."""
     st.html(f"<style>{CSS_FILTRES}</style>")
+
+COULEURS_ECHELLE = {
+    "A": ("#319834", "#FFFFFF"),
+    "B": ("#33CC31", "#FFFFFF"),
+    "C": ("#CBFC34", "#17301B"),
+    "D": ("#FBFE06", "#17301B"),
+    "E": ("#FBCC05", "#17301B"),
+    "F": ("#FC9935", "#17301B"),
+    "G": ("#FC0205", "#FFFFFF"),
+}
+
+CSS_PREDICTION = """
+/* Formulaire : pas de cadre autour du formulaire entier, une carte blanche par groupe de champs */
+[data-testid="stForm"] {
+    border: none;
+    padding: 0;
+}
+[class*="st-key-groupe_"] {
+    background: #FFFFFF;
+    border: 1px solid #E3EFCF;
+    border-radius: 20px;
+    padding: 16px 20px 12px;
+    box-shadow: 0 6px 18px rgba(31, 107, 38, 0.06);
+    gap: 0.4rem;
+}
+[class*="st-key-groupe_"] strong {
+    font-size: 16px;
+}
+
+/* Colonne de droite : le résultat reste visible pendant la saisie */
+.st-key-panneau_droit {
+    position: sticky;
+    top: 1rem;
+    gap: 0.9rem;
+}
+.st-key-panneau_resultat {
+    background: linear-gradient(180deg, #FFF6DF, #FFE9C4);
+    border-radius: 24px;
+    border-bottom: 5px solid #FC9935;
+    padding: 18px 20px 20px;
+    box-shadow: 0 14px 30px -20px rgba(120, 70, 0, 0.45);
+    gap: 0.6rem;
+}
+.st-key-bloc_modeles {
+    background: #FFFFFF;
+    border: 1px solid #E3EFCF;
+    border-radius: 20px;
+    padding: 14px 18px;
+    gap: 0.4rem;
+}
+
+/* Échelle A à G : l'étiquette estimée sort de la rangée */
+.dpe-ech {
+    display: flex;
+    gap: 6px;
+    padding: 28px 0 8px;
+}
+.dpe-lt {
+    flex: 1;
+    height: 50px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.dpe-lt.neutre { opacity: 0.45; }
+.dpe-lt.estompee { opacity: 0.35; }
+.dpe-lt.choisie {
+    transform: translateY(-6px) scale(1.14);
+    box-shadow: 0 0 0 4px #FFFFFF, 0 10px 18px -8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+}
+.dpe-lt em {
+    position: absolute;
+    top: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 600;
+    color: #17301B;
+    white-space: nowrap;
+}
+"""
+
+
+def habiller_prediction():
+    """Applique le style de la page Prédiction (avec celui de la bande de filtres)."""
+    st.html(f"<style>{CSS_FILTRES}{CSS_PREDICTION}</style>")
+
+
+def echelle_dpe(etiquette=None):
+    """Échelle A à G en HTML. Sans étiquette, toutes les pastilles sont grisées ;
+    avec une étiquette, elle ressort et les autres s'estompent."""
+    pastilles = ""
+    for lettre, (fond, texte) in COULEURS_ECHELLE.items():
+        if etiquette is None:
+            classe, marque = "neutre", ""
+        elif lettre == etiquette:
+            classe, marque = "choisie", "<em>Votre logement</em>"
+        else:
+            classe, marque = "estompee", ""
+        pastilles += f'<div class="dpe-lt {classe}" style="background:{fond};color:{texte}">{lettre}{marque}</div>'
+    description = f"Étiquette estimée : {etiquette}" if etiquette else "Échelle des étiquettes DPE, de A à G"
+    return f'<div class="dpe-ech" role="img" aria-label="{description}">{pastilles}</div>'

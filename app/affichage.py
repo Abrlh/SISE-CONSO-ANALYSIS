@@ -127,3 +127,47 @@ def a_venir(titre, detail="Ce graphique sera affiché avec les résultats prépa
     with st.container(border=True):
         st.markdown(f"**{titre}**")
         st.caption(f"À venir. {detail}")
+
+
+# ---- Formulaire de la page Prédiction (affichage seulement : les champs viennent des modèles)
+# colonne du modèle -> libellé lisible
+NOMS_CHAMPS = {
+    "surface_habitable_logement": "Surface habitable (m²)",
+    "annee_construction": "Année de construction",
+    "type_batiment": "Type de bâtiment",
+    "nombre_niveau_logement": "Nombre de niveaux",
+    "numero_etage_appartement": "Étage de l'appartement",
+    "zone_climatique": "Zone climatique",
+    "classe_altitude": "Classe d'altitude",
+    "type_energie_n1": "Énergie principale de chauffage",
+    "type_energie_n2": "Énergie secondaire de chauffage",
+    "type_generateur_n1_installation_n1": "Générateur de chauffage",
+    "type_emetteur_installation_chauffage_n1": "Émetteur de chaleur",
+    "type_installation_ecs": "Installation d'eau chaude",
+    "type_generateur_n1_ecs_n1": "Générateur d'eau chaude",
+    "type_ventilation": "Type de ventilation",
+    "qualite_isolation_enveloppe": "Isolation de l'enveloppe",
+    "qualite_isolation_murs": "Isolation des murs",
+    "qualite_isolation_plancher_haut_comble_perdu": "Isolation du plancher haut (comble perdu)",
+    "qualite_isolation_plancher_bas": "Isolation du plancher bas",
+    "qualite_isolation_menuiseries": "Isolation des menuiseries",
+    "isolation_toiture": "Isolation de la toiture",
+}
+
+# cartes du formulaire : (titre, icône Material, colonnes du modèle)
+GROUPES_CHAMPS = [
+    ("Logement", "apartment", ["surface_habitable_logement", "annee_construction", "type_batiment",
+                               "nombre_niveau_logement", "numero_etage_appartement"]),
+    ("Localisation", "location_on", ["zone_climatique", "classe_altitude"]),
+    ("Chauffage", "local_fire_department", ["type_energie_n1", "type_energie_n2",
+                                            "type_generateur_n1_installation_n1",
+                                            "type_emetteur_installation_chauffage_n1"]),
+    ("Eau chaude", "water_drop", ["type_installation_ecs", "type_generateur_n1_ecs_n1"]),
+    ("Ventilation", "air", ["type_ventilation"]),
+    ("Isolation", "layers", ["qualite_isolation_enveloppe", "qualite_isolation_murs",
+                             "qualite_isolation_plancher_haut_comble_perdu", "qualite_isolation_plancher_bas",
+                             "qualite_isolation_menuiseries", "isolation_toiture"]),
+]
+
+# champs numériques qui se saisissent en nombres entiers (pas de décimales à l'écran)
+CHAMPS_ENTIERS = {"annee_construction", "nombre_niveau_logement", "numero_etage_appartement"}
