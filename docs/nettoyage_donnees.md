@@ -22,13 +22,14 @@ data/processed/<snapshot>/  données propres, toutes colonnes sauf les presque v
                             un fichier par département                                  ← ANALYSE et MODÈLES
 ```
 
-Un **snapshot** est une photo des données à un moment donné (il porte la date de son téléchargement). Le snapshot de référence est **`2026-10-12_132605`** : trois départements (59, 69, 75), 393 952 lignes brutes, **388 717 logements après nettoyage** (5 235 retirés, soit 1,3 %).
+Un **snapshot** est une photo des données à un moment donné (il porte la date de son téléchargement). Le snapshot de référence est **`2026-10-12_132605`** : trois départements (59, 69, 75), 393 952 lignes brutes, **388 833 logements après nettoyage** (5 119 retirés, soit 1,3 %).
+
 
 | Département | Lignes brutes | Lignes propres | Colonnes |
 |---|---|---|---|
-| 75 (Paris) | 108 644 | 107 235 | 156 |
-| 59 (Nord) | 140 344 | 138 807 | 159 |
-| 69 (Rhône) | 144 964 | 142 675 | 159 |
+| 75 (Paris) | 108 644 | 107 331 | 156 |
+| 59 (Nord) | 140 344 | 138 819 | 159 |
+| 69 (Rhône) | 144 964 | 142 683 | 159 |
 
 Ce qu'il faut retenir :
 - Les mêmes fichiers `data/processed` servent à l'**analyse** (graphiques, cartes, statistiques) et de **point de départ pour les modèles**.
@@ -111,7 +112,7 @@ Sur le snapshot `2026-10-12_132605`, dans l'ordre d'application :
 | Manquants clés | numéro, étiquette, consommation ou surface absents | sans eux, la ligne est inutilisable | 210 / 306 / 192 |
 | Étiquettes | on garde A à G | toute autre valeur est une erreur | 0 / 0 / 0 |
 | Surface | entre **5 et 500 m²** | en dessous, ce n'est pas un logement ; au-dessus, ce sont surtout des erreurs de saisie | 56 / 37 / 77 |
-| Consommation | **supérieure à 0 et au plus 1 000 kWh/m²/an** | au-delà, valeurs extrêmes isolées, très probablement des erreurs ; le seuil est large pour ne retirer que l'aberrant | 26 / 21 / 150 |
+| Consommation | **supérieure à 0 et au plus 1 000 kWh/m²/an** | au-delà, valeurs extrêmes isolées, très probablement des erreurs ; le seuil est large pour ne retirer que l'aberrant |14 / 13 / 54
 | Émissions de GES | au plus **1 000 kg CO₂/m²/an** | des émissions impossibles (jusqu'à 5 900 observées à Lyon, avec une étiquette G fausse) | 0 / 30 / 0 |
 
 **Les immeubles** ne sont pas des erreurs de données mais un choix sur la population étudiée : on s'intéresse aux logements. C'est un interrupteur : `TYPES_BATIMENT_EXCLUS = []` dans `preprocessing.py` les garde (dans ce cas, penser que le plafond de surface à 500 m² retirerait beaucoup d'immeubles). **À confirmer par l'équipe.**
