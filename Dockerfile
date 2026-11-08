@@ -10,10 +10,10 @@ COPY requirements-docker.txt .
 RUN pip install --no-cache-dir -r requirements-docker.txt
 
 COPY . .
+RUN ALLEGER_DOCKER=1 python docker/alleger_processed.py --ecrire
 
 EXPOSE 8501
-
-CMD streamlit run app/main.py \
+CMD exec streamlit run app/main.py \
     --server.address=0.0.0.0 \
     --server.port=${PORT:-8501} \
     --server.headless=true \
