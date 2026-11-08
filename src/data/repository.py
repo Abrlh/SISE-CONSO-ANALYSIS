@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 from .api_client import AdemeApiClient
-from ..storage.storage import LocalStorage, Storage
+from ..storage.storage import LocalStorage, Storage, supprimer_snapshots_anciens
 
 class DataRepository():
     NB_DEPARTEMENTS = 3
@@ -12,10 +12,11 @@ class DataRepository():
     # Largeur fixe : l'ordre alphabétique des id est aussi l'ordre chronologique.
     SNAPSHOT_ID_FORMAT = "%Y-%m-%d_%H%M%S"
 
-    def __init__(self):
+    def __init__(self, root:str|Path|None=None):
         #Load data-raw
         self.__client:AdemeApiClient = AdemeApiClient()
-        self.__root = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
+        # root : dossier des données brutes, data/raw par défaut (autre dossier pour les tests)
+        self.__root = Path(root) if root is not None else Path(__file__).resolve().parent.parent.parent / "data" / "raw"
         self.__storage:Storage = LocalStorage(root=self.__root)
 
         # Données prétraitées : data/processed/<snapshot_id>/<departement>.parquet + meta.json
@@ -32,7 +33,7 @@ class DataRepository():
 
     def __get_departements(self)-> list:
         d = list()
-        with open(Path(__file__).resolve().parent.parent.parent / "data" /"raw"/ "codes_departements_nb_lignes.csv") as f:
+        with open(self.__root / "codes_departements_nb_lignes.csv") as f:
             for i in range(self.NB_DEPARTEMENTS+1):
                 line = f.readline()
                 if line == "": raise ValueError(f"Le fichier codes_departements_nb_lignes.csv ne contient pas assez de lignes. Attendu: {self.NB_DEPARTEMENTS+1}, trouvé: {i}")
@@ -79,6 +80,20 @@ class DataRepository():
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         (snapshot_dir / "meta.json").write_text(json.dumps(meta, indent=2))
         return snapshot_id
+
+    def departements(self)-> list[str]:
+        """Codes des départements traités par le projet."""
+        return list(self.__departements)
+
+
+    def remove_old_snapshots(self, a_garder:list[str])-> None:
+        """Supprime les anciens snapshots de data/raw, data/processed et data/stats.
+
+        Args:
+            a_garder: id des snapshots à conserver (voir supprimer_snapshots_anciens)
+        """
+        for root in (self.__root, self.__processed_root, self.__stats_root):
+            supprimer_snapshots_anciens(root, a_garder)
 
 
     def list_snapshots(self)-> list[str]:

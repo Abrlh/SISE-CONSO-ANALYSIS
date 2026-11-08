@@ -26,6 +26,7 @@ class TrainingPipeline():
 
     # Étapes disponibles, toujours exécutées dans cet ordre
     STEPS = ("load", "audit", "preprocess", "stats", "train")
+    NB_SNAPSHOTS_GARDES = 2
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """Lance les étapes demandées du pipeline sur un snapshot.
@@ -61,6 +62,7 @@ class TrainingPipeline():
         if "train" in steps:
             print(f"=== Étape 4 : entraînement et évaluation des modèles du snapshot {snapid} ===")
             self.train(snapid, processed)
+            self.__nettoyer_snapshots()
 
         # adapt task config
 
@@ -85,6 +87,20 @@ class TrainingPipeline():
             snapid = self.__repository.latest_snapshot()
             print(f"    - on récupère le dernier snapshot enregistré: {snapid}  ")
         return snapid
+
+
+    def __nettoyer_snapshots(self)-> None:
+        """Garde les NB_SNAPSHOTS_GARDES derniers snapshots aboutis (modèles et statistiques complets)
+        et supprime les plus anciens de data/raw, data/processed, data/stats et models/."""
+        stats = self.__repository.list_stats_snapshots()
+        aboutis = [s for s in self.__registry.snapshots_complets(list(self.TACHES), self.__repository.departements())
+                   if s in stats]
+        a_garder = aboutis[-self.NB_SNAPSHOTS_GARDES:]
+        if not a_garder:
+            return
+        self.__repository.remove_old_snapshots(a_garder)
+        self.__registry.remove_old_snapshots(a_garder)
+        print(f"=== Nettoyage : snapshots conservés : {a_garder} ===")
 
 
     ##########################

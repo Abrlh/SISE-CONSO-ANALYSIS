@@ -4,7 +4,7 @@
   "departement": "59",
   "modele": "RegressionModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T11:32:21+00:00",
+  "entraine_le": "2026-11-08T12:23:04+00:00",
   "evaluation": [
     "scores",
     "predit_reel",

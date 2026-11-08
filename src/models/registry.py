@@ -9,6 +9,7 @@ import pandas as pd
 import sklearn
 
 from .base import BaseModel
+from ..storage.storage import supprimer_snapshots_anciens
 
 
 class ModelRegistry():
@@ -101,6 +102,17 @@ class ModelRegistry():
             return []
         return sorted(p.name for p in self.__root.iterdir()
                       if (p / tache / departement / "meta.json").exists())
+
+    def snapshots_complets(self, taches:list[str], departements:list[str])-> list[str]:
+        """Id des snapshots qui ont un modèle complet pour chaque tâche et chaque département, du plus ancien au plus récent."""
+        if not self.__root.exists():
+            return []
+        return sorted(p.name for p in self.__root.iterdir()
+                      if all((p / t / d / "meta.json").exists() for t in taches for d in departements))
+
+    def remove_old_snapshots(self, a_garder:list[str])-> None:
+        """Supprime les anciens snapshots de models/ (voir supprimer_snapshots_anciens)."""
+        supprimer_snapshots_anciens(self.__root, a_garder)
 
     def list_departements(self, tache:str)-> list[str]:
         """Départements qui ont au moins un modèle complet pour cette tâche."""
