@@ -15,6 +15,7 @@ class AppService():
         self.__cache_evaluation:dict = {}       # {(tache, departement, nom): DataFrame}
         self.__snapshot_stats:str|None = None   # snapshot dont on affiche les statistiques
         self.__cache_stats:dict = {}            # {(snapshot, nom): DataFrame}, évite de relire le disque
+        self.__cache_formulaire:dict|None = None   # résultat de formulaire(), lit les données une seule fois
         pass
 
     def snapshot_stats(self)-> str:
@@ -78,4 +79,62 @@ class AppService():
             self.__cache_evaluation[cle] = self.__registry.load_evaluation(tache, departement, nom)
         return self.__cache_evaluation[cle].copy()
 
-    
+
+    def formulaire(self)-> dict:
+        """Renvoie, pour chaque tâche et département, la cible et les champs du formulaire de prédiction
+        (modèle le plus récent de chaque département, comme predire()).
+
+        Forme du dictionnaire :
+        {
+            "snapshot": <id du snapshot le plus récent>,
+            "classification": {
+                <num_departement>: {
+                    "cible": <nom de la cible>,
+                    "champs": {<colonne>: <description du champ, cf. champs()>, ...}
+                },
+                ...
+            },
+            "regression": { même forme }
+        }
+
+        Raises:
+            FileNotFoundError: aucun modèle entraîné
+        """
+        if self.__cache_formulaire is not None:
+            return self.__cache_formulaire
+
+        resultat = {"snapshot": None, "classification": {}, "regression": {}}
+        donnees = {}   # {snapshot: {departement: DataFrame}}, chaque snapshot n'est lu qu'une fois
+        for tache in ("classification", "regression"):
+            for departement in self.__registry.list_departements(tache):
+                meta = self.__registry.load_meta(tache, departement)
+                snapid = meta["snapshot_id"]
+                if snapid not in donnees:
+                    donnees[snapid] = self.__repository.load_processed(snapid)
+                resultat[tache][departement] = {
+                    "cible": meta["cible"],
+                    "champs": self.champs(donnees[snapid][departement], meta["colonnes"]),
+                }
+
+        if not donnees:
+            raise FileNotFoundError("Aucun modèle entraîné. Lancez : python -m src.orchestration.train --train")
+        resultat["snapshot"] = max(donnees)
+        self.__cache_formulaire = resultat
+        return resultat
+
+    @staticmethod
+    def champs(df:pd.DataFrame, colonnes:list[str])-> dict:
+        """Décrit chaque colonne du formulaire à partir des données d'entraînement.
+
+        Returns:
+            {<colonne>: {"type": "nombre", "min": <min>, "max": <max>}}   pour une colonne numérique
+            {<colonne>: {"type": "choix", "choix": <valeurs triées>}}   sinon
+        """
+        resultat = {}
+        for colonne in colonnes:
+            valeurs = df[colonne].dropna()
+            if pd.api.types.is_numeric_dtype(valeurs):
+                resultat[colonne] = {"type": "nombre", "min": float(valeurs.min()), "max": float(valeurs.max())}
+            else:
+                resultat[colonne] = {"type": "choix", "choix": sorted(valeurs.unique())}
+        return resultat
