@@ -256,13 +256,12 @@ def habiller_cartes():
 
 
 def pied_de_menu():
-    """Affiche en bas du menu de gauche la source des données et les auteures du projet."""
+    """Affiche en bas du menu de gauche la source des données et le nom du projet."""
     with st.sidebar:
         st.markdown(
             '<div style="font-size:12px;line-height:1.5;color:#4D6150">'
             "Source des données : ADEME, DPE des logements existants et neufs."
-            '<br><br>Projet M2 SISE<br>Présenté par :<br>Clara FONTAINE<br>'
-            "Aissatou Lamarana BARRY<br>Nicole NGEJEJE</div>",
+            "<br><br>Projet M2 SISE </div>",
             unsafe_allow_html=True,
         )
 
@@ -955,9 +954,7 @@ def jauge_fiabilite(pourcentage, nom_departement):
     )
 
 
-# ---------------------------------------------------------------------------------------------
 # PAGE CONTEXTE : titres en rubans d'étiquette DPE, tuiles de chiffres, blocs dépliables en cartes
-# ---------------------------------------------------------------------------------------------
 # Couleur du ruban de chaque titre, du haut vers le bas de la page (des verts vers le jaune)
 RUBANS_CONTEXTE = {
     "ruban_presentation": "#93CC84",
