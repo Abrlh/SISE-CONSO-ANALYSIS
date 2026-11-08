@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__/
+*.pyc
+.pytest_cache
+notebooks
+tests
+reports
+docs
+data/raw/*
+!data/raw/codes_departements_nb_lignes.csv
+!data/raw/codes_departements.csv
