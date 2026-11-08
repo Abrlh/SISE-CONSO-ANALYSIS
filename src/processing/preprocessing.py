@@ -36,11 +36,11 @@ SEUIL_MANQUANT = 0.8                       # une colonne vide à plus de 80 % es
 TYPES_BATIMENT_EXCLUS = ["immeuble"]       # [] pour garder les immeubles
 
 COLONNES_OBLIGATOIRES = ["numero_dpe", "etiquette_dpe",
-                         "conso_5_usages_par_m2_ep", "surface_habitable_logement"]
+                         "conso_5_usages_par_m2_ef", "surface_habitable_logement"]
 # colonnes créées par le nettoyage -> colonne brute dont elles viennent (None : ajoutée par la fusion)
 # (sert à l'audit, qui contrôle les données brutes)
 COLONNES_CREEES = {"origine": None, "latitude": "_geopoint", "longitude": "_geopoint"}
-COLONNES_NUMERIQUES = ["conso_5_usages_par_m2_ep", "surface_habitable_logement",
+COLONNES_NUMERIQUES = ["conso_5_usages_par_m2_ef", "surface_habitable_logement",
                        "emission_ges_5_usages_par_m2", "hauteur_sous_plafond"]
 # Ordres des catégories ordonnées (pour les filtres et les graphiques)
 ORDRE_PERIODE = ["avant 1948", "1948-1974", "1975-1977", "1978-1982", "1983-1988",
@@ -104,7 +104,7 @@ def filtrer_surface(df):
     return df[df["surface_habitable_logement"].between(SURFACE_MIN, SURFACE_MAX)]
 
 def filtrer_consommation(df):
-    return df[(df["conso_5_usages_par_m2_ep"] > 0) & (df["conso_5_usages_par_m2_ep"] <= CONSO_MAX)]
+    return df[(df["conso_5_usages_par_m2_ef"] > 0) & (df["conso_5_usages_par_m2_ef"] <= CONSO_MAX)]
 
 def filtrer_emissions_ges(df):
     """Supprime les émissions impossibles (ex. 12 neufs de Lyon, étiquette G fausse).
@@ -222,8 +222,7 @@ class DataPreprocessor():
             }
             for d in self.bilans
         }
-
-
+    
     def fusionner(self, datasets: dict) -> dict:
         """Fusionne les datasets de chaque département ; la colonne "origine"
         contient le nom du dataset (ex. "dpe_existants")."""
