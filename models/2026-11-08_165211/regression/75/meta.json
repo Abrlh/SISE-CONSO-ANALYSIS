@@ -1,16 +1,17 @@
 {
-  "snapshot_id": "2026-10-12_132605",
+  "snapshot_id": "2026-11-08_165211",
   "tache": "regression",
   "departement": "75",
   "modele": "RegressionModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T12:19:16+00:00",
+  "entraine_le": "2026-11-08T16:54:18+00:00",
   "evaluation": [
     "scores",
     "predit_reel",
     "erreur_par_tranche",
     "importance_variables"
   ],
+  "snapshot_source": "2026-10-12_132605",
   "cible": "conso_5_usages_par_m2_ef",
   "colonnes": [
     "surface_habitable_logement",

@@ -1,16 +1,17 @@
 {
-  "snapshot_id": "2026-10-12_132605",
+  "snapshot_id": "2026-11-08_165211",
   "tache": "regression",
-  "departement": "69",
+  "departement": "59",
   "modele": "RegressionModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T12:27:04+00:00",
+  "entraine_le": "2026-11-08T16:58:15+00:00",
   "evaluation": [
     "scores",
     "predit_reel",
     "erreur_par_tranche",
     "importance_variables"
   ],
+  "snapshot_source": "2026-10-12_132605",
   "cible": "conso_5_usages_par_m2_ef",
   "colonnes": [
     "surface_habitable_logement",
@@ -35,11 +36,11 @@
     "isolation_toiture"
   ],
   "meilleurs_params": {},
-  "nb_lignes_train": 99878,
-  "nb_lignes_test": 42805,
+  "nb_lignes_train": 97173,
+  "nb_lignes_test": 41646,
   "metriques_test": {
-    "r2": 0.8260684704178346,
-    "mae": 20.83157751467742,
-    "rmse": 34.44734140989783
+    "r2": 0.8206204918386627,
+    "mae": 25.211199433396075,
+    "rmse": 41.171801849590246
   }
 }

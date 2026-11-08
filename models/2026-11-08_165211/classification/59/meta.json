@@ -1,16 +1,17 @@
 {
-  "snapshot_id": "2026-10-12_132605",
+  "snapshot_id": "2026-11-08_165211",
   "tache": "classification",
   "departement": "59",
   "modele": "ClassificationModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T12:22:53+00:00",
+  "entraine_le": "2026-11-08T16:58:04+00:00",
   "evaluation": [
     "scores",
     "matrice_confusion",
     "par_etiquette",
     "importance_variables"
   ],
+  "snapshot_source": "2026-10-12_132605",
   "cible": "etiquette_dpe",
   "colonnes": [
     "surface_habitable_logement",
