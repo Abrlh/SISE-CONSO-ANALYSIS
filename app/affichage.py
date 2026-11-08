@@ -13,25 +13,8 @@ NOMS_DEPARTEMENTS = {"59": "Nord", "69": "Rhône", "75": "Paris"}
 # Noms lisibles des origines des logements (affichage seulement)
 NOMS_ORIGINES = {"dpe_existants": "Logements existants", "dpe_neufs": "Logements neufs"}
 
-# Illustration de la page d'accueil : une maison et l'échelle des étiquettes
-ILLUSTRATION_SVG = """
-<svg viewBox="0 0 340 220" width="100%" role="img" aria-label="Maison et échelle des étiquettes DPE de A à G">
-  <path d="M20 120 100 50l80 70v80H20z" fill="#FFFFFF" stroke="#0F766E" stroke-width="3" stroke-linejoin="round"/>
-  <rect x="82" y="150" width="36" height="50" fill="#0F766E"/>
-  <rect x="44" y="124" width="28" height="24" fill="#BFD9D4"/>
-  <rect x="128" y="124" width="28" height="24" fill="#BFD9D4"/>
-  <rect x="200" y="30" width="60" height="20" rx="3" fill="#319834"/>
-  <rect x="200" y="54" width="75" height="20" rx="3" fill="#33CC31"/>
-  <rect x="200" y="78" width="90" height="20" rx="3" fill="#CBFC34"/>
-  <rect x="200" y="102" width="105" height="20" rx="3" fill="#FBFE06"/>
-  <rect x="200" y="126" width="120" height="20" rx="3" fill="#FBCC05"/>
-  <rect x="200" y="150" width="120" height="20" rx="3" fill="#FC9935"/>
-  <rect x="200" y="174" width="120" height="20" rx="3" fill="#FC0205"/>
-</svg>
-"""
-
 NOMS_VARIABLES_NUMERIQUES = {
-    "conso_5_usages_par_m2_ep": "Consommation d'énergie de 5 usages par m² (kWh/m²/an)",
+    "conso_5_usages_par_m2_ef": "Consommation d'énergie finale",
     "surface_habitable_logement": "Surface habitable du logement (m²)",
     "hauteur_sous_plafond": "Hauteur sous plafond (m)",
     "emission_ges_5_usages_par_m2": "Émissions de gaz à effet de serre de 5 usages par m² (kg CO₂e/m²/an)",
@@ -40,7 +23,7 @@ NOMS_VARIABLES_NUMERIQUES = {
 
 # Noms courts des variables numériques, pour les axes des graphiques
 NOMS_VARIABLES_COURTS = {
-    "conso_5_usages_par_m2_ep": "Consommation d'énergie<br>(5 usages)",
+    "conso_5_usages_par_m2_ef": "Consommation d'énergie finale",
     "surface_habitable_logement": "Surface<br>habitable",
     "hauteur_sous_plafond": "Hauteur sous<br>plafond",
     "emission_ges_5_usages_par_m2": "Émissions de GES<br>(5 usages)",
@@ -53,13 +36,12 @@ NOMS_COLONNES_STATS = {
     "q1": "Quartile 1", "mediane": "Médiane", "q3": "Quartile 3", "p95": "Percentile 95", "maximum": "Maximum",
 }
 
-
-# Titres lisibles des colonnes de l'aperçu des données 
+# Titres lisibles des colonnes de l'aperçu des données
 NOMS_COLONNES_APERCU = {
     "departement": "Département",
     "origine": "Origine",
     "etiquette_dpe": "Étiquette DPE",
-    "conso_5_usages_par_m2_ep": NOMS_VARIABLES_NUMERIQUES["conso_5_usages_par_m2_ep"],
+    "conso_5_usages_par_m2_ef": NOMS_VARIABLES_NUMERIQUES["conso_5_usages_par_m2_ef"],
     "surface_habitable_logement": NOMS_VARIABLES_NUMERIQUES["surface_habitable_logement"],
     "periode_construction": "Période de construction",
     "type_batiment": "Type de bâtiment",
@@ -73,6 +55,7 @@ NOMS_COLONNES_APERCU = {
     "latitude": "Latitude",
     "longitude": "Longitude",
 }
+
 
 def nom_departement(code):
     """Nom lisible d'un département, ex. '59' -> 'Nord (59)'."""
@@ -97,6 +80,7 @@ def filtres_perimetre(conteneur, tableau_perimetres):
     origine = conteneur.radio("Origine du logement", ["Tous"] + liste_valeurs(tableau_perimetres, "origine"))
     return departement, origine
 
+
 def choisir(tableau, departement=None, origine=None):
     """Sélectionne les lignes d'un tableau pour un département et/ou une origine. Aucun calcul."""
     masque = tableau.index == tableau.index
@@ -115,18 +99,11 @@ def fmt_nombre(valeur, decimales=0):
 def legende_etiquettes():
     """Légende des couleurs des étiquettes, en une ligne."""
     elements = [
-        f"<span style='display:inline-block;width:12px;height:12px;border-radius:50%;"
+        "<span style='display:inline-block;width:12px;height:12px;border-radius:50%;"
         f"background:{couleur};margin-right:4px'></span>{lettre}"
         for lettre, couleur in zip(ETIQUETTES, COULEURS_ETIQUETTES)
     ]
     st.markdown("&nbsp;&nbsp;&nbsp;".join(elements), unsafe_allow_html=True)
-
-
-def a_venir(titre, detail="Ce graphique sera affiché avec les résultats préparés par le back end."):
-    """Emplacement d'un graphique ou d'un chiffre qui sera branché plus tard."""
-    with st.container(border=True):
-        st.markdown(f"**{titre}**")
-        st.caption(f"À venir. {detail}")
 
 
 # ---- Formulaire de la page Prédiction (affichage seulement : les champs viennent des modèles)
@@ -171,3 +148,14 @@ GROUPES_CHAMPS = [
 
 # champs numériques qui se saisissent en nombres entiers (pas de décimales à l'écran)
 CHAMPS_ENTIERS = {"annee_construction", "nombre_niveau_logement", "numero_etage_appartement"}
+
+# phrase sous le titre de chaque étape du formulaire (page Prédiction, affichage seulement)
+DESCRIPTIONS_GROUPES = {
+    "Logement": "Taille, âge et type du bâtiment",
+    "Localisation": "Où se trouve le logement",
+    "Chauffage": "Énergie et équipements de chauffage",
+    "Eau chaude": "Production d'eau chaude sanitaire",
+    "Ventilation": "Renouvellement de l'air",
+    "Isolation": "Murs, toiture, plancher et fenêtres",
+    "Autres caractéristiques": "Les autres informations demandées par les modèles",
+}

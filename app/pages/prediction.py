@@ -7,13 +7,14 @@ l'estimation de AppService.predire. L'apprentissage sera branché plus tard.
 import pandas as pd
 import streamlit as st
 
-from affichage import CHAMPS_ENTIERS, GROUPES_CHAMPS, NOMS_CHAMPS, nom_departement
+from affichage import (
+    CHAMPS_ENTIERS, DESCRIPTIONS_GROUPES, GROUPES_CHAMPS, NOMS_CHAMPS, NOMS_DEPARTEMENTS, nom_departement,
+)
 from deps import get_service
-from style import echelle_dpe, habiller_prediction
+from style import echelle_dpe, habiller_prediction, jauge_fiabilite, tuile_resultat
 
 st.title(":material/online_prediction: Prédiction")
 st.write("Décrivez un logement pour estimer son étiquette DPE et sa consommation.")
-habiller_prediction()
 
 service = get_service()
 try:
@@ -64,7 +65,7 @@ def afficher_champ(colonne, champ):
 # TODO à supprimer : bouton de test qui remplit le formulaire avec des données fictives
 def remplir_test(champs):
     """Met une valeur fictive dans chaque champ : 1re valeur des listes, minimum des nombres sauf exceptions."""
-    valeurs = {"surface_habitable_logement": 60.0, "annee_construction": 1975.0, "numero_etage_appartement": 2.0}
+    valeurs = {"surface_habitable_logement": 60.0, "annee_construction": 1975.0}
     for colonne, champ in champs.items():
         if champ["type"] == "choix":
             st.session_state[colonne] = champ["choix"][0]
@@ -73,20 +74,34 @@ def remplir_test(champs):
 
 
 def afficher_precision(tache, departement):
-    """Mesures du modèle sur le jeu de test, à côté d'une référence naïve (une réponse « sans modèle »)."""
+    """Mesures du modèle sur le jeu de test, à côté de la référence naïve."""
     scores = service.evaluation_modele(tache, departement, "scores")
     lignes = []
     for _, ligne in scores.iterrows():
         unite = f" {ligne['unite']}" if isinstance(ligne["unite"], str) and ligne["unite"] else ""
-        texte = f"- {ligne['libelle']} : **{ligne['valeur']:.2f}{unite}**"
-        if pd.notna(ligne["reference_naive"]):
-            texte += f" (référence naïve : {ligne['reference_naive']:.2f}{unite})"
-        lignes.append(texte)
-    st.markdown(f"**{TITRES_TACHES[tache]}**")
-    st.markdown("\n".join(lignes))
+        reference = f"{ligne['reference_naive']:.2f}{unite}" if pd.notna(ligne["reference_naive"]) else "—"
+        lignes.append({"Mesure": ligne["libelle"], "Modèle": f"{ligne['valeur']:.2f}{unite}", "Référence naïve": reference})
+    if len(taches) > 1:
+        st.markdown(f"**{TITRES_TACHES[tache]}**")
+    st.dataframe(pd.DataFrame(lignes), hide_index=True, width="stretch")
 
 
-gauche, droite = st.columns([3, 2])
+def fiabilite_etiquette(departement):
+    """Part des étiquettes devinées exactement sur le jeu de test (en %), lue dans les scores du modèle.
+    Renvoie None si le tableau ne contient pas cette mesure."""
+    try:
+        scores = service.evaluation_modele("classification", departement, "scores")
+    except (FileNotFoundError, KeyError, ValueError):
+        return None
+    for _, ligne in scores.iterrows():
+        nom = f"{ligne['metrique']} {ligne['libelle']}".lower()
+        if "exact" in nom or "accuracy" in nom:
+            valeur = float(ligne["valeur"])
+            return valeur * 100 if valeur <= 1 else valeur
+    return None
+
+
+gauche, droite = st.columns([6, 5])
 
 with gauche:
     # hors du formulaire : changer ces choix met à jour les champs tout de suite
@@ -104,25 +119,38 @@ with gauche:
     # TODO à supprimer avec remplir_test
     bande.button("Test : remplir avec des données fictives", on_click=remplir_test, args=(champs,))
 
-    with st.form("formulaire_logement"):
-        # une carte par groupe ; les champs que les groupes ne connaissent pas vont dans « Autres »
-        groupes = [(titre, icone, [c for c in colonnes if c in champs]) for titre, icone, colonnes in GROUPES_CHAMPS]
-        connus = {c for _, _, colonnes in GROUPES_CHAMPS for c in colonnes}
-        autres = [c for c in champs if c not in connus]
-        if autres:
-            groupes.append(("Autres caractéristiques", "more_horiz", autres))
+    # une étape par groupe ; les champs que les groupes ne connaissent pas vont dans « Autres caractéristiques »
+    groupes = [(titre, icone, [c for c in colonnes if c in champs]) for titre, icone, colonnes in GROUPES_CHAMPS]
+    connus = {c for _, _, colonnes in GROUPES_CHAMPS for c in colonnes}
+    autres = [c for c in champs if c not in connus]
+    if autres:
+        groupes.append(("Autres caractéristiques", "more_horiz", autres))
+    groupes = [groupe for groupe in groupes if groupe[2]]
+    habiller_prediction([len(colonnes) for _, _, colonnes in groupes])
 
+    with st.form("formulaire_logement"):
         valeurs = {}
-        for numero, (titre, icone, colonnes) in enumerate(groupes):
-            if not colonnes:
-                continue
-            with st.container(key=f"groupe_{numero}"):
-                st.markdown(f"**:material/{icone}: {titre}**")
-                deux_colonnes = st.columns(2)
-                for rang, colonne in enumerate(colonnes):
-                    with deux_colonnes[rang % 2]:
-                        valeurs[colonne] = afficher_champ(colonne, champs[colonne])
+        etape_du_champ = {}
+        # st.tabs dans un formulaire : tous les onglets sont envoyés ensemble au clic sur le bouton
+        with st.container(key="etapes"):
+            onglets = st.tabs([f":material/{icone}: {titre}" for titre, icone, _ in groupes])
+            for rang_onglet, (onglet, (titre, icone, colonnes)) in enumerate(zip(onglets, groupes)):
+                with onglet:
+                    # en-tête de l'étape : pastille d'icône, titre et description
+                    colonne_icone, colonne_texte = st.columns([1, 11], vertical_alignment="center")
+                    with colonne_icone:
+                        with st.container(key=f"icone_etape_{rang_onglet}"):
+                            st.markdown(f":material/{icone}:")
+                    colonne_texte.html(
+                        f'<div class="etape-texte"><b>{titre}</b><span>{DESCRIPTIONS_GROUPES.get(titre, "")}</span></div>'
+                    )
+                    deux_colonnes = st.columns(2)
+                    for rang, colonne in enumerate(colonnes):
+                        etape_du_champ[colonne] = titre
+                        with deux_colonnes[rang % 2]:
+                            valeurs[colonne] = afficher_champ(colonne, champs[colonne])
         envoye = st.form_submit_button("Estimer ce logement", type="primary", icon=":material/calculate:")
+        st.caption(f"Remplissez les {len(groupes)} onglets avant d'estimer.")
 
     # même ordre de colonnes que celui des modèles (le regroupement par cartes l'a changé à l'écran)
     saisies = {colonne: valeurs[colonne] for colonne in champs}
@@ -131,30 +159,40 @@ with droite:
     with st.container(key="panneau_droit"):
         with st.container(key="panneau_resultat"):
             st.subheader(":material/insights: Résultat")
+            avec_etiquette = "classification" in taches
+            avec_consommation = "regression" in taches
             if not envoye:
-                if "classification" in taches:
+                st.markdown(tuile_resultat(None, None, avec_etiquette, avec_consommation), unsafe_allow_html=True)
+                if avec_etiquette:
                     st.markdown(echelle_dpe(), unsafe_allow_html=True)
                 st.caption("Remplissez le formulaire puis cliquez sur « Estimer ce logement ».")
             else:
                 # un champ numérique vide ferait passer sa colonne en texte : la prédiction serait fausse sans erreur
                 manquants = [colonne for colonne, valeur in saisies.items() if valeur is None]
                 if manquants:
-                    st.warning("Champs à remplir : " + ", ".join(libelle(c) for c in manquants))
+                    st.warning(
+                        "Champs à remplir : "
+                        + ", ".join(f"{libelle(c)} ({etape_du_champ[c]})" for c in manquants)
+                    )
                 else:
                     X = pd.DataFrame([saisies])
-                    if "classification" in taches:
+                    etiquette = consommation = None
+                    if avec_etiquette:
                         etiquette = str(service.predire("classification", departement, X)[0])
-                        st.markdown(echelle_dpe(etiquette), unsafe_allow_html=True)
-                    if "regression" in taches:
-                        conso = service.predire("regression", departement, X)[0]
-                        st.metric("Consommation estimée", f"{conso:.0f} kWh/m²/an")
-                        st.caption("Énergie finale, par m² et par an.")
-                    st.caption(
-                        "Estimation d'un modèle entraîné sur les logements du département : c'est un ordre de grandeur, "
-                        "pas un diagnostic officiel. Les logements très énergivores (étiquettes F et G) sont "
-                        "les plus difficiles à repérer."
+                    if avec_consommation:
+                        consommation = float(service.predire("regression", departement, X)[0])
+                    st.markdown(
+                        tuile_resultat(etiquette, consommation, avec_etiquette, avec_consommation),
+                        unsafe_allow_html=True,
                     )
-                    with st.expander("Voir les mesures du modèle"):
+                    if avec_etiquette:
+                        st.markdown(echelle_dpe(etiquette), unsafe_allow_html=True)
+                        fiabilite = fiabilite_etiquette(departement)
+                        if fiabilite is not None:
+                            nom_court = NOMS_DEPARTEMENTS.get(departement, departement)
+                            st.markdown(jauge_fiabilite(fiabilite, nom_court), unsafe_allow_html=True)
+                    st.caption("Estimation indicative, pas un diagnostic officiel.")
+                    with st.expander("Mesures détaillées"):
                         for tache in taches:
                             afficher_precision(tache, departement)
 

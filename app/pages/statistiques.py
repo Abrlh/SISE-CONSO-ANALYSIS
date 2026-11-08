@@ -8,8 +8,10 @@ import streamlit as st
 from tableaux import lire, lire_ou_arreter
 
 import graphiques
+from affichage import (
+    NOMS_COLONNES_APERCU, NOMS_COLONNES_STATS, NOMS_VARIABLES_COURTS, choisir, filtres_perimetre, fmt_nombre,
+)
 from style import habiller_filtres
-from affichage import NOMS_COLONNES_APERCU, NOMS_VARIABLES_COURTS, NOMS_COLONNES_STATS, choisir, filtres_perimetre, fmt_nombre
 
 st.title(":material/bar_chart: Statistiques")
 
@@ -47,8 +49,7 @@ if not total.empty:
 
 
 def csv_logements():
-    filtre_departement = None if departement == "Tous" else departement
-    filtre_origine = None if origine == "Tous" else origine
+    """Les logements du périmètre choisi, au format CSV (le calcul se fait au clic sur le bouton)."""
     tableau = choisir(lire("logements"), filtre_departement, filtre_origine)
     return tableau.to_csv(index=False).encode("utf-8")
 
@@ -87,8 +88,10 @@ with onglets[0]:
 
     st.subheader(":material/compare_arrows: Comparer les départements")
     gauche, droite = st.columns(2)
-    gauche.plotly_chart(graphiques.barres_departements(kpi, "conso_mediane", "Consommation médiane par département", "Consommation médiane (kWh/m²/an)"))
-    droite.plotly_chart(graphiques.barres_departements(kpi, "part_f_g", "Part de passoires (F-G) par département", "% de logements F ou G", ".1f"))
+    gauche.plotly_chart(graphiques.barres_departements(
+        kpi, "conso_mediane", "Consommation médiane par département", "Consommation médiane (kWh/m²/an)"))
+    droite.plotly_chart(graphiques.barres_departements(
+        kpi, "part_f_g", "Part de passoires (F-G) par département", "% de logements F ou G", ".1f"))
     st.caption("Ces graphiques comparent tous les départements : ils ne dépendent pas des filtres.")
 
 # ---- Consommation
@@ -105,14 +108,16 @@ with onglets[1]:
         st.plotly_chart(graphiques.nuage_surface_conso(points, "Consommation selon la surface"))
         st.caption(f"Chaque point est un logement de l'échantillon préparé en amont ({fmt_nombre(len(points))} affichés).")
 
-
-        resume = choisir(lire_ou_arreter("stats_conso"), departement, origine)
+    resume = choisir(lire_ou_arreter("stats_conso"), departement, origine)
     if not resume.empty:
         with st.expander("Résumé statistique de la consommation"):
             st.caption("Consommation d'énergie de 5 usages par m² (kWh/m²/an).")
-            tableau = resume.drop(columns=["departement", "origine"], errors="ignore").rename(columns=NOMS_COLONNES_STATS)
+            tableau = resume.drop(columns=["departement", "origine"], errors="ignore").rename(
+                columns=NOMS_COLONNES_STATS
+            )
             tableau = tableau[[c for c in ["Effectif", "Moyenne", "Écart-type", "Médiane"] if c in tableau.columns]]
             st.dataframe(tableau, hide_index=True)
+
 # ---- Facteurs
 with onglets[2]:
     modalites = lire_ou_arreter("conso_par_modalite")
@@ -145,16 +150,13 @@ with onglets[2]:
             for colonne in ["variable_x", "variable_y"]:
                 correlations[colonne] = correlations[colonne].map(lambda code: NOMS_VARIABLES_COURTS.get(code, code))
             st.plotly_chart(graphiques.matrice_correlation(correlations, "Matrice de corrélation"))
-            st.caption(
-            "Chaque case va de -1 à 1. Proche de 1 : les deux variables montent ensemble. "
-            "Proche de -1 : l'une monte quand l'autre baisse. Proche de 0 : pas de lien."
-        )
-        with st.expander("Plus de détails"):
-            st.write(
-                "Les variables de consommation, d'émissions de GES et de coût portent sur les 5 usages du DPE : "
-                "chauffage, eau chaude, refroidissement, éclairage et auxiliaires. "
-                "La matrice dépend de l'origine choisie, pas du département."
-            )
+            with st.expander("Plus de détails"):
+                st.markdown(
+                    "- Plus la case est foncée, plus le lien entre les deux variables est fort.\n"
+                    "- Chaque case est comprise entre -1 et 1. Proche de 1 : les deux variables montent ensemble. "
+                    "Proche de -1 : l'une monte quand l'autre baisse. Proche de 0 : pas de lien.\n"
+                    "- La matrice dépend de l'origine choisie, pas du département."
+                )
 
 
 # ---- Coût et GES
@@ -170,7 +172,8 @@ with onglets[3]:
     ges = choisir(lire_ou_arreter("etiquette_ges_vs_dpe"), None, origine)
     if not ges.empty:
         gauche, droite = st.columns(2)
-        gauche.plotly_chart(graphiques.chaleur(ges, "Étiquette GES selon l'étiquette DPE (% par ligne)"))
+        gauche.plotly_chart(graphiques.ges_selon_dpe(ges, "Étiquette GES selon l'étiquette DPE"))
+        gauche.caption("Lecture : chaque barre représente 100 logements d'une même étiquette DPE, répartis selon leur étiquette GES.")
         droite.plotly_chart(graphiques.camembert_ges(ges, "Répartition des logements par étiquette GES"))
         st.caption("Ces deux graphiques dépendent de l'origine choisie, pas du département.")
 

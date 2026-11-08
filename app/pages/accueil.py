@@ -7,6 +7,7 @@ from style import banniere_accueil, habiller_cartes
 banniere_accueil()
 habiller_cartes()
 
+st.markdown('<div style="height: 1.5rem"></div>', unsafe_allow_html=True)
 st.subheader(":material/explore: Que souhaitez-vous faire ?")
 st.caption("Un parcours en trois étapes")
 colonnes = st.columns(3)

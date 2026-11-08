@@ -4,11 +4,11 @@ Le style est du CSS (la langue des couleurs et des mises en forme du web), envoy
 forme de texte. La bannière utilise aussi du HTML (la structure) et un dessin SVG (des formes dessinées
 par des coordonnées). Les couleurs viennent des étiquettes DPE de l'application. Aucun calcul ici.
 """
+import math
+
 import streamlit as st
 
-# ---------------------------------------------------------------------------------------------
-# MENU DE GAUCHE
-# ---------------------------------------------------------------------------------------------
+
 # Couleur de la tuile d'icône de chaque page, dans l'ordre du menu.
 # Ce sont des couleurs d'étiquettes DPE : A (vert), C (citron), E (jaune), F (orange).
 COULEURS_PAGES = {
@@ -20,11 +20,31 @@ COULEURS_PAGES = {
 
 # Les noms entre crochets (data-testid) sont ceux que Streamlit donne aux éléments du menu
 CSS_MENU = """
-/* Moins d'espace vide autour du contenu : Streamlit en laisse beaucoup par défaut */
+/* Moins d'espace vide autour du contenu : Streamlit en laisse beaucoup par défaut.
+   Plusieurs noms sont listés car Streamlit nomme ce bloc différemment selon les versions. */
+.block-container,
+.stMainBlockContainer,
 [data-testid="stMainBlockContainer"] {
-    padding-top: 1.4rem;
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
+    padding-top: 0.5rem !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+}
+/* Titre de page : on enlève la marge que Streamlit ajoute au-dessus d'un titre */
+[data-testid="stMainBlockContainer"] h1,
+.block-container h1 {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+/* Les blocs de style (st.html) posés tout en haut de la page ne doivent pas laisser de vide */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:has(> [data-testid="stHtml"]) {
+    display: none;
+}
+/* Le cadre de 1 pixel de empecher_traduction : on le range hors du flux de la page */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:has(iframe) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
 }
 
 /* Fond du menu : dégradé du vert pâle (haut) vers le pêche (bas) */
@@ -128,9 +148,7 @@ def habiller_menu():
     st.html(f"<style>{CSS_MENU}{regles_tuiles}</style>")
 
 
-# ---------------------------------------------------------------------------------------------
 # CARTES DE L'ACCUEIL : trois cartes numérotées, cliquables en entier
-# ---------------------------------------------------------------------------------------------
 # Pour chaque carte : (nom de la carte, couleur de fond, couleur de l'étiquette, dégradé vers la suivante)
 CARTES = [
     ("carte_contexte", "#F2FCCC", "#CBFC34", "linear-gradient(90deg, #CBFC34, #FBCC05)"),
@@ -409,10 +427,8 @@ CSS_BANNIERE = """
 }
 """
 
-# ---------------------------------------------------------------------------------------------
 # Le dessin (SVG) : un logement existant, un logement neuf, une éolienne, un poteau électrique
 # et une borne de recharge. Chaque ligne est une forme.
-# ---------------------------------------------------------------------------------------------
 SCENE_SVG = """<svg viewBox="-30 -40 760 560" width="100%" style="display:block" role="img" aria-label="Illustration : un logement existant et un logement neuf, avec éolienne, poteau électrique et borne de recharge">
 <ellipse cx="352" cy="310" rx="200" ry="58" fill="#17301B" opacity=".13"/>
 <polygon points="300.0,150.0 546.8,292.5 403.9,375.0 157.1,232.5" fill="#BDE8A3" />
@@ -584,21 +600,155 @@ COULEURS_ECHELLE = {
 }
 
 CSS_PREDICTION = """
-/* Formulaire : pas de cadre autour du formulaire entier, une carte blanche par groupe de champs */
+/* Formulaire : pas de cadre autour du formulaire entier */
 [data-testid="stForm"] {
     border: none;
     padding: 0;
 }
-[class*="st-key-groupe_"] {
+
+/* Étapes du formulaire : les onglets deviennent une frise d'icônes reliées par un trait dégradé.
+   On vise les rôles d'accessibilité (role="tab"...) : ils ne changent pas d'une version de Streamlit à l'autre. */
+.st-key-etapes {
     background: #FFFFFF;
     border: 1px solid #E3EFCF;
-    border-radius: 20px;
-    padding: 16px 20px 12px;
-    box-shadow: 0 6px 18px rgba(31, 107, 38, 0.06);
-    gap: 0.4rem;
+    border-radius: 24px;
+    padding: 14px 10px 22px;
+    box-shadow: 0 8px 20px -16px rgba(31, 107, 38, 0.4);
+    gap: 0;
 }
-[class*="st-key-groupe_"] strong {
-    font-size: 16px;
+.st-key-etapes [role="tablist"] {
+    position: relative;
+    display: flex;
+    gap: 0;
+    justify-content: space-between;
+    overflow: visible !important;
+    padding: 10px 0 0;
+    border-bottom: 1px solid #E3EFCF;
+}
+.st-key-etapes [role="tablist"]::before {
+    content: "";
+    position: absolute;
+    left: 8.33%;
+    right: 8.33%;
+    top: 29px;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #319834, #CBFC34, #FBCC05, #FC9935);
+}
+.st-key-etapes [role="tab"] {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 2px 12px !important;
+    background: transparent;
+    border-bottom: 3px solid transparent;
+}
+.st-key-etapes [role="tab"] p {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    text-align: center;
+    font-size: 13.5px;
+    line-height: 1.25;
+    color: #4D6150;
+}
+.st-key-etapes [role="tab"] p::after {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #7B8B7D;
+}
+.st-key-etapes [role="tab"] p > :first-child {
+    width: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    margin: 0;
+    border-radius: 50%;
+    border: 2px solid #CFE4B8;
+    background: #FFFFFF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #4D6150;
+}
+.st-key-etapes [role="tab"] p > :first-child,
+.st-key-etapes [role="tab"] p > :first-child * {
+    font-size: 20px !important;
+}
+.st-key-etapes [role="tab"][aria-selected="true"] {
+    border-bottom-color: #FC9935;
+}
+.st-key-etapes [role="tab"][aria-selected="true"] p {
+    color: #17301B;
+    font-weight: 700;
+}
+.st-key-etapes [role="tab"][aria-selected="true"] p > :first-child {
+    background: #FC9935;
+    border-color: #FC9935;
+    color: #17301B;
+    box-shadow: 0 0 0 5px #FFE6CA;
+}
+/* le soulignement est dessiné par le bas de l'onglet : on cache celui de Streamlit pour ne pas le doubler */
+.st-key-etapes [role="tablist"] > :not([role="tab"]) {
+    display: none !important;
+}
+.st-key-etapes [role="tabpanel"] {
+    padding: 22px 18px 0;
+}
+
+/* En-tête de chaque étape : pastille d'icône, titre et description */
+[class*="st-key-icone_etape_"] {
+    flex: none;
+    width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    border-radius: 14px;
+    background: #FFF0D2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+}
+[class*="st-key-icone_etape_"] * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    font-size: 26px !important;
+    color: #17301B;
+}
+.etape-texte {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+.etape-texte b {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #17301B;
+}
+.etape-texte span {
+    font-size: 13.5px;
+    color: #4D6150;
+}
+
+/* Champs du formulaire : fond vert très clair, sans cadre */
+.st-key-etapes [data-baseweb="input"],
+.st-key-etapes [data-baseweb="select"] > div {
+    background: #F6FAE9;
+    border-color: transparent;
+    border-radius: 10px;
 }
 
 /* Colonne de droite : le résultat reste visible pendant la saisie */
@@ -608,12 +758,12 @@ CSS_PREDICTION = """
     gap: 0.9rem;
 }
 .st-key-panneau_resultat {
-    background: linear-gradient(180deg, #FFF6DF, #FFE9C4);
-    border-radius: 24px;
-    border-bottom: 5px solid #FC9935;
-    padding: 18px 20px 20px;
-    box-shadow: 0 14px 30px -20px rgba(120, 70, 0, 0.45);
-    gap: 0.6rem;
+    background: linear-gradient(180deg, #FFF4DC, #FFE9CB);
+    border-radius: 28px;
+    border-bottom: 6px solid #FC9935;
+    padding: 20px 22px 22px;
+    box-shadow: 0 18px 34px -22px rgba(252, 153, 53, 0.7);
+    gap: 0.7rem;
 }
 .st-key-bloc_modeles {
     background: #FFFFFF;
@@ -623,60 +773,321 @@ CSS_PREDICTION = """
     gap: 0.4rem;
 }
 
-/* Échelle A à G : l'étiquette estimée sort de la rangée */
-.dpe-ech {
+/* Résultat : grande tuile d'étiquette, consommation, échelle A à G */
+.res-haut {
     display: flex;
-    gap: 6px;
-    padding: 28px 0 8px;
+    gap: 18px;
+    align-items: center;
 }
-.dpe-lt {
-    flex: 1;
-    height: 50px;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 19px;
+.res-tuile {
+    width: 88px;
+    height: 88px;
+    flex: none;
+    border-radius: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
+    font-size: 50px;
+    font-weight: 700;
+    box-shadow: 0 10px 16px -10px rgba(0, 0, 0, 0.35);
 }
-.dpe-lt.neutre { opacity: 0.45; }
-.dpe-lt.estompee { opacity: 0.35; }
+.res-tuile.vide {
+    background: #FFFFFF;
+    color: #9AA89C;
+}
+.res-textes small {
+    display: block;
+    font-size: 12.5px;
+    color: #4D6150;
+}
+.res-textes small + small {
+    margin-top: 6px;
+}
+.res-conso b {
+    font-size: 36px;
+    line-height: 1.1;
+}
+.res-conso span {
+    font-size: 13px;
+    color: #4D6150;
+}
+.dpe-ech {
+    margin-top: 14px;
+}
+.dpe-ligne {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.dpe-lt {
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    font-weight: 700;
+    font-size: 14px;
+}
+.dpe-lt.neutre { opacity: 0.4; }
+.dpe-lt.estompee { opacity: 0.42; }
 .dpe-lt.choisie {
-    transform: translateY(-6px) scale(1.14);
-    box-shadow: 0 0 0 4px #FFFFFF, 0 10px 18px -8px rgba(0, 0, 0, 0.4);
-    z-index: 2;
+    height: 42px;
+    font-size: 20px;
+    box-shadow: 0 10px 16px -10px rgba(0, 0, 0, 0.4);
 }
-.dpe-lt em {
-    position: absolute;
-    top: -26px;
-    left: 50%;
-    transform: translateX(-50%);
+.dpe-ligne em {
     font-style: normal;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: #17301B;
     white-space: nowrap;
+}
+
+/* Fiabilité du modèle : jauge en demi-cercle */
+.jauge {
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 14px 16px 12px;
+    text-align: center;
+}
+.jauge-titre {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+.jauge svg {
+    display: block;
+    margin: 6px auto 0;
+}
+.jauge-valeur {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    margin-top: -38px;
+    margin-bottom: 4px;
+    position: relative;
+}
+.jauge p {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    color: #4D6150;
 }
 """
 
 
-def habiller_prediction():
-    """Applique le style de la page Prédiction (avec celui de la bande de filtres)."""
-    st.html(f"<style>{CSS_FILTRES}{CSS_PREDICTION}</style>")
+def habiller_prediction(nombres_champs=()):
+    """Applique le style de la page Prédiction.
+
+    nombres_champs : le nombre de champs de chaque étape, dans l'ordre des onglets.
+    Il est écrit sous le nom de chaque onglet (« 5 champs »)."""
+    compteurs = ""
+    for rang, nombre in enumerate(nombres_champs, start=1):
+        mot = "champ" if nombre == 1 else "champs"
+        compteurs += (
+            f'.st-key-etapes [role="tab"]:nth-of-type({rang}) p::after {{ content: "{nombre} {mot}"; }}\n'
+        )
+    if nombres_champs:
+        # le trait dégradé va du centre du premier onglet au centre du dernier
+        marge = 50 / len(nombres_champs)
+        compteurs += f'.st-key-etapes [role="tablist"]::before {{ left: {marge:.2f}%; right: {marge:.2f}%; }}\n'
+    st.html(f"<style>{CSS_FILTRES}{CSS_PREDICTION}{compteurs}</style>")
 
 
 def echelle_dpe(etiquette=None):
-    """Échelle A à G en HTML. Sans étiquette, toutes les pastilles sont grisées ;
+    """Échelle A à G en barres. Sans étiquette, toutes les barres sont grisées ;
     avec une étiquette, elle ressort et les autres s'estompent."""
-    pastilles = ""
-    for lettre, (fond, texte) in COULEURS_ECHELLE.items():
+    lignes = ""
+    for rang, (lettre, (fond, texte)) in enumerate(COULEURS_ECHELLE.items()):
         if etiquette is None:
             classe, marque = "neutre", ""
         elif lettre == etiquette:
-            classe, marque = "choisie", "<em>Votre logement</em>"
+            classe, marque = "choisie", "<em>◀ Votre logement</em>"
         else:
             classe, marque = "estompee", ""
-        pastilles += f'<div class="dpe-lt {classe}" style="background:{fond};color:{texte}">{lettre}{marque}</div>'
+        largeur = 48 + rang * 8
+        lignes += (
+            f'<div class="dpe-ligne"><div class="dpe-lt {classe}" style="width:{largeur}%;background:{fond};'
+            f'color:{texte}">{lettre}</div>{marque}</div>'
+        )
     description = f"Étiquette estimée : {etiquette}" if etiquette else "Échelle des étiquettes DPE, de A à G"
-    return f'<div class="dpe-ech" role="img" aria-label="{description}">{pastilles}</div>'
+    return f'<div class="dpe-ech" role="img" aria-label="{description}">{lignes}</div>'
+
+
+def tuile_resultat(etiquette=None, consommation=None, avec_etiquette=True, avec_consommation=True):
+    """En-tête du résultat : tuile de l'étiquette estimée et consommation estimée.
+    Sans valeur (avant l'estimation), la tuile affiche « ? » et la consommation « — »."""
+    tuile = textes = ""
+    if avec_etiquette:
+        if etiquette:
+            fond, texte = COULEURS_ECHELLE[etiquette]
+            tuile = f'<div class="res-tuile" style="background:{fond};color:{texte}">{etiquette}</div>'
+        else:
+            tuile = '<div class="res-tuile vide">?</div>'
+        textes += "<small>Étiquette estimée</small>"
+    if avec_consommation:
+        valeur = "—" if consommation is None else f"{consommation:.0f}"
+        textes += (
+            f'<small>Consommation estimée</small><div class="res-conso"><b>{valeur}</b> '
+            "<span>kWh/m²/an</span></div>"
+        )
+    return f'<div class="res-haut">{tuile}<div class="res-textes">{textes}</div></div>'
+
+
+def jauge_fiabilite(pourcentage, nom_departement):
+    """Jauge en demi-cercle : part des logements dont l'étiquette est devinée exactement."""
+    pourcentage = max(0.0, min(100.0, float(pourcentage)))
+    angle = math.radians(180 * pourcentage / 100)
+    # demi-cercle de centre (60, 62) et de rayon 50 ; (x, y) est le bout de l'arc coloré
+    x = 60 - 50 * math.cos(angle)
+    y = 62 - 50 * math.sin(angle)
+    arc = f'<path d="M10 62 A50 50 0 0 1 {x:.1f} {y:.1f}" stroke="url(#jauge-degrade)" stroke-width="12" fill="none" stroke-linecap="round"/>'
+    return (
+        '<div class="jauge">'
+        f'<div class="jauge-titre">Fiabilité du modèle ({nom_departement})</div>'
+        '<svg width="170" height="88" viewBox="0 0 120 70" aria-hidden="true">'
+        '<defs><linearGradient id="jauge-degrade" x1="0" x2="1"><stop offset="0" stop-color="#FC9935"/>'
+        '<stop offset="0.5" stop-color="#FBCC05"/><stop offset="1" stop-color="#319834"/></linearGradient></defs>'
+        '<path d="M10 62 A50 50 0 0 1 110 62" stroke="#E3EFCF" stroke-width="12" fill="none" stroke-linecap="round"/>'
+        f"{arc}</svg>"
+        f'<div class="jauge-valeur">{pourcentage:.0f} %</div>'
+        "<p>Part des logements dont l'étiquette est devinée exactement.</p>"
+        "</div>"
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# PAGE CONTEXTE : titres en rubans d'étiquette DPE, tuiles de chiffres, blocs dépliables en cartes
+# ---------------------------------------------------------------------------------------------
+# Couleur du ruban de chaque titre, du haut vers le bas de la page (des verts vers le jaune)
+RUBANS_CONTEXTE = {
+    "ruban_presentation": "#93CC84",
+    "ruban_carte": "#A9D882",
+    "ruban_rafraichir": "#CBE77E",
+    "ruban_apercu": "#F6E270",
+}
+# Fond de chaque tuile de chiffre, de gauche à droite
+TUILES_CONTEXTE = ["#C4E3B3", "#E0F2A0", "#FCE893", "#FBCFA0"]
+
+CSS_CONTEXTE = """
+/* Ligne du snapshot : une rangée de pastilles blanches (snapshot, date, départements) */
+.snap-ligne {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 6px;
+}
+.snap-puce {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #FFFFFF;
+    border: 1px solid #E3EFCF;
+    border-radius: 999px;
+    padding: 7px 15px;
+    font-size: 13px;
+    color: #4D6150;
+    box-shadow: 0 6px 12px -10px rgba(31, 107, 38, 0.5);
+}
+.snap-puce b {
+    font-weight: 600;
+    color: #17301B;
+}
+.snap-puce svg {
+    flex: none;
+    color: #319834;
+}
+
+/* Titres de section : un ruban en forme d'étiquette DPE (pointe à droite) */
+[class*="st-key-ruban_"] {
+    margin-top: 1.2rem;
+    margin-bottom: 0.4rem;
+}
+[class*="st-key-ruban_"] h3 {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    margin: 0;
+    padding: 11px 48px 11px 14px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #17301B;
+    border-radius: 14px 0 0 14px;
+    clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%);
+}
+[class*="st-key-ruban_"] h3 [data-testid="stIconMaterial"] {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.55);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+}
+
+/* Les quatre chiffres : des tuiles colorées, l'icône reste à gauche du titre */
+.st-key-chiffres [data-testid="stMetric"] {
+    border-radius: 24px;
+    padding: 18px 20px;
+    border: 1px solid rgba(23, 48, 27, 0.06);
+    box-shadow: 0 10px 20px -18px rgba(31, 107, 38, 0.5);
+}
+.st-key-chiffres [data-testid="stMetricValue"] {
+    color: #1F5A2A;
+    font-weight: 700;
+}
+.st-key-chiffres [data-testid="stMetricLabel"] {
+    color: #2F4D33;
+}
+
+/* Blocs dépliables (résumé, filtres, rafraîchissement, limites) : des cartes blanches arrondies */
+[data-testid="stExpander"] details {
+    background: #FFFFFF;
+    border: 1px solid #E3EFCF;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px -16px rgba(31, 107, 38, 0.4);
+    overflow: hidden;
+}
+[data-testid="stExpander"] summary {
+    padding: 14px 20px;
+}
+
+/* Curseur de surface : en rouge (on fait tourner la teinte du vert vers le rouge) */
+.st-key-surface [data-testid="stSlider"] {
+    filter: hue-rotate(240deg) saturate(2) brightness(0.88);
+}
+"""
+
+
+def habiller_contexte():
+    """Applique le style de la page Contexte : rubans, tuiles de chiffres, cartes dépliables, curseur rouge."""
+    regles = ""
+    for nom, couleur in RUBANS_CONTEXTE.items():
+        regles += f".st-key-{nom} h3 {{ background: {couleur}; }}\n"
+    for rang, fond in enumerate(TUILES_CONTEXTE, start=1):
+        colonne = f'.st-key-chiffres [data-testid="stColumn"]:nth-child({rang})'
+        regles += f'{colonne} [data-testid="stMetric"] {{ background: {fond}; }}\n'
+    st.html(f"<style>{CSS_CONTEXTE}{regles}</style>")
+
+
+# Petit repère de carte (SVG) placé devant chaque département
+PICTO_LIEU = (
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M12 21s7-6.2 7-11.5A7 7 0 005 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
+)
+
+
+def ligne_snapshot(snapshot, date_telechargement, noms_departements):
+    """Première ligne de la page Contexte : une rangée de pastilles (HTML) avec les mêmes informations qu'avant."""
+    puces = [
+        f'<span class="snap-puce">Données du snapshot <b>{snapshot}</b></span>',
+        f'<span class="snap-puce">Téléchargé le <b>{date_telechargement}</b></span>',
+    ]
+    if noms_departements:
+        puces += [f'<span class="snap-puce">{PICTO_LIEU}<b>{nom}</b></span>' for nom in noms_departements]
+    else:
+        puces.append('<span class="snap-puce">départements non précisés</span>')
+    # écrit sur une seule ligne : un retour à la ligne vide casserait le HTML dans Streamlit
+    return f'<div class="snap-ligne">{"".join(puces)}</div>'
