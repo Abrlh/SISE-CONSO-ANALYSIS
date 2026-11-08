@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 from .api_client import AdemeApiClient
-from ..storage.storage import LocalStorage, Storage
+from ..storage.storage import LocalStorage, Storage, supprimer_snapshots_anciens
 
 class DataRepository():
     NB_DEPARTEMENTS = 3
@@ -12,15 +12,19 @@ class DataRepository():
     # Largeur fixe : l'ordre alphabétique des id est aussi l'ordre chronologique.
     SNAPSHOT_ID_FORMAT = "%Y-%m-%d_%H%M%S"
 
-    def __init__(self):
+    def __init__(self, root:str|Path|None=None):
         #Load data-raw
         self.__client:AdemeApiClient = AdemeApiClient()
-        self.__root = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
+        # root : dossier des données brutes, data/raw par défaut (autre dossier pour les tests)
+        self.__root = Path(root) if root is not None else Path(__file__).resolve().parent.parent.parent / "data" / "raw"
         self.__storage:Storage = LocalStorage(root=self.__root)
 
         # Données prétraitées : data/processed/<snapshot_id>/<departement>.parquet + meta.json
         self.__processed_root = self.__root.parent / "processed"
         self.__processed_storage:Storage = LocalStorage(root=self.__processed_root)
+
+        # Snapshot affiché par l'application : data/snapshot_actif.json
+        self.__actif_path = self.__root.parent / "snapshot_actif.json"
 
         self.__departements = self.__get_departements()
         # Statistiques pré-calculées : data/stats/<snapshot_id>/<nom>.parquet + meta.json
@@ -32,7 +36,7 @@ class DataRepository():
 
     def __get_departements(self)-> list:
         d = list()
-        with open(Path(__file__).resolve().parent.parent.parent / "data" /"raw"/ "codes_departements_nb_lignes.csv") as f:
+        with open(self.__root / "codes_departements_nb_lignes.csv") as f:
             for i in range(self.NB_DEPARTEMENTS+1):
                 line = f.readline()
                 if line == "": raise ValueError(f"Le fichier codes_departements_nb_lignes.csv ne contient pas assez de lignes. Attendu: {self.NB_DEPARTEMENTS+1}, trouvé: {i}")
@@ -79,6 +83,42 @@ class DataRepository():
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         (snapshot_dir / "meta.json").write_text(json.dumps(meta, indent=2))
         return snapshot_id
+
+    def departements(self)-> list[str]:
+        """Codes des départements traités par le projet."""
+        return list(self.__departements)
+
+
+    def snapshot_actif(self)-> str|None:
+        """Id du snapshot affiché par l'application, None si aucun n'a encore été publié."""
+        if not self.__actif_path.exists():
+            return None
+        return json.loads(self.__actif_path.read_text())["snapshot_id"]
+
+
+    def modeles_actifs(self)-> str|None:
+        """Id de la version de modèles affichée par l'application, None si aucune n'a encore été publiée."""
+        if not self.__actif_path.exists():
+            return None
+        return json.loads(self.__actif_path.read_text())["modeles_id"]
+
+
+    def definir_snapshot_actif(self, snapshot_id:str, modeles_id:str)-> None:
+        """Publie un snapshot de données et une version de modèles.
+        Écriture atomique : l'application lit l'ancienne publication ou la nouvelle, jamais un fichier partiel."""
+        temporaire = self.__actif_path.with_suffix(".tmp")
+        temporaire.write_text(json.dumps({"snapshot_id": snapshot_id, "modeles_id": modeles_id}, indent=2))
+        temporaire.replace(self.__actif_path)
+
+
+    def remove_old_snapshots(self, a_garder:list[str])-> None:
+        """Supprime les anciens snapshots de data/raw, data/processed et data/stats.
+
+        Args:
+            a_garder: id des snapshots à conserver (voir supprimer_snapshots_anciens)
+        """
+        for root in (self.__root, self.__processed_root, self.__stats_root):
+            supprimer_snapshots_anciens(root, a_garder)
 
 
     def list_snapshots(self)-> list[str]:

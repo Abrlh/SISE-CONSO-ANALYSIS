@@ -11,17 +11,21 @@ import pandas as pd
 import streamlit as st
 
 DOSSIER_PROCESSED = Path(__file__).resolve().parent.parent / "data" / "processed"
+FICHIER_SNAPSHOT_ACTIF = DOSSIER_PROCESSED.parent / "snapshot_actif.json"
 
-# Snapshot à lire. Mettre None pour lire automatiquement le plus récent.
+# Snapshot à lire. Mettre None pour lire automatiquement le snapshot actif (à défaut, le plus récent).
 SNAPSHOT_CHOISI = None
 
 
 def dernier_snapshot():
-    """Chemin du dossier de snapshot à lire (SNAPSHOT_CHOISI, sinon le plus récent), ou None s'il n'y en a pas."""
+    """Chemin du dossier de snapshot à lire (SNAPSHOT_CHOISI, sinon le snapshot actif, sinon le plus récent), ou None s'il n'y en a pas."""
     if not DOSSIER_PROCESSED.exists():
         return None
-    if SNAPSHOT_CHOISI:
-        choisi = DOSSIER_PROCESSED / SNAPSHOT_CHOISI
+    snapshot = SNAPSHOT_CHOISI
+    if not snapshot and FICHIER_SNAPSHOT_ACTIF.exists():
+        snapshot = json.loads(FICHIER_SNAPSHOT_ACTIF.read_text(encoding="utf-8"))["snapshot_id"]
+    if snapshot:
+        choisi = DOSSIER_PROCESSED / snapshot
         return choisi if choisi.is_dir() else None
     dossiers = sorted(d for d in DOSSIER_PROCESSED.iterdir() if d.is_dir())
     return dossiers[-1] if dossiers else None

@@ -1,7 +1,7 @@
 """Page « Prédiction » : formulaire de saisie d'un logement et estimation.
 
 Les champs du formulaire et leurs choix viennent des modèles entraînés (AppService.formulaire),
-l'estimation de AppService.predire. L'apprentissage sera branché plus tard.
+l'estimation de AppService.predire. Le réentraînement est dans app/reentrainement.py.
 """
 
 import pandas as pd
@@ -11,6 +11,7 @@ from affichage import (
     CHAMPS_ENTIERS, DESCRIPTIONS_GROUPES, GROUPES_CHAMPS, NOMS_CHAMPS, NOMS_DEPARTEMENTS, nom_departement,
 )
 from deps import get_service
+from reentrainement import afficher_bloc_reentrainement
 from style import echelle_dpe, habiller_prediction, jauge_fiabilite, tuile_resultat
 
 st.title(":material/online_prediction: Prédiction")
@@ -198,6 +199,5 @@ with droite:
 
         with st.container(key="bloc_modeles"):
             st.subheader(":material/model_training: Modèles")
-            st.write("Relancer l'apprentissage utilise les données les plus récentes et peut prendre quelques minutes.")
-            if st.button("Relancer l'apprentissage", icon=":material/refresh:"):
-                st.info("L'apprentissage sera disponible quand les modèles seront branchés sur l'application.")
+            st.write("Réentraîne les modèles sur les données actuelles, sans nouveau téléchargement.")
+            afficher_bloc_reentrainement(service.info_modele(taches[0], departement)["snapshot_id"])

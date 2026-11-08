@@ -4,7 +4,7 @@
   "departement": "59",
   "modele": "ClassificationModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T11:32:11+00:00",
+  "entraine_le": "2026-11-08T12:22:53+00:00",
   "evaluation": [
     "scores",
     "matrice_confusion",

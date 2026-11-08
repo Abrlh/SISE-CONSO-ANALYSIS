@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timezone
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -26,6 +27,7 @@ class TrainingPipeline():
 
     # Étapes disponibles, toujours exécutées dans cet ordre
     STEPS = ("load", "audit", "preprocess", "stats", "train")
+    NB_SNAPSHOTS_GARDES = 2
 
     def run(self, steps:list[str], snapid:str|None=None, refresh:bool=False)-> dict:
         """Lance les étapes demandées du pipeline sur un snapshot.
@@ -60,7 +62,8 @@ class TrainingPipeline():
             self.stats(snapid, processed)
         if "train" in steps:
             print(f"=== Étape 4 : entraînement et évaluation des modèles du snapshot {snapid} ===")
-            self.train(snapid, processed)
+            self.train(snapid, processed, self.__version_modeles(snapid))
+            self.__publier_et_nettoyer_snapshots()
 
         # adapt task config
 
@@ -85,6 +88,54 @@ class TrainingPipeline():
             snapid = self.__repository.latest_snapshot()
             print(f"    - on récupère le dernier snapshot enregistré: {snapid}  ")
         return snapid
+
+
+    def __versions_abouties(self)-> list[str]:
+        """Versions de modèles complètes dont le snapshot source a ses statistiques, de la plus ancienne à la plus récente."""
+        stats = self.__repository.list_stats_snapshots()
+        return [v for v in self.__registry.snapshots_complets(list(self.TACHES), self.__repository.departements())
+                if self.__registry.snapshot_source(v) in stats]
+
+
+    def __version_modeles(self, snapid:str)-> str:
+        """Renvoie la version de modèles à écrire : un nouvel id si snapid est affiché par l'application, snapid sinon.
+
+        L'application continue de lire les anciens modèles jusqu'à la publication de la nouvelle version.
+        """
+        aboutis = self.__versions_abouties()
+        if self.__repository.snapshot_actif() is None and aboutis:
+            # sans pointeur, l'application lirait la nouvelle version, plus récente, pendant son écriture
+            self.__repository.definir_snapshot_actif(self.__registry.snapshot_source(aboutis[-1]), aboutis[-1])
+        if snapid != self.__repository.snapshot_actif():
+            return snapid
+        return datetime.now(timezone.utc).strftime(self.__repository.SNAPSHOT_ID_FORMAT)
+
+
+    def __versions_a_garder(self)-> list[str]:
+        """Versions de modèles à conserver, de la plus ancienne à la plus récente.
+
+        Les NB_SNAPSHOTS_GARDES dernières (l'application lancée lit peut-être l'avant-dernière), plus la dernière
+        version de chacun des NB_SNAPSHOTS_GARDES derniers snapshots de données : réentraîner plusieurs fois
+        le même snapshot ne fait donc jamais disparaître le téléchargement précédent.
+        """
+        aboutis = self.__versions_abouties()
+        derniere_par_source = {self.__registry.snapshot_source(v): v for v in aboutis}
+        sources = sorted(derniere_par_source)[-self.NB_SNAPSHOTS_GARDES:]
+        return sorted({*aboutis[-self.NB_SNAPSHOTS_GARDES:], *(derniere_par_source[s] for s in sources)})
+
+
+    def __publier_et_nettoyer_snapshots(self)-> None:
+        """Publie la dernière version de modèles aboutie, puis supprime de data/raw, data/processed, data/stats
+        et models/ les snapshots plus anciens que ceux à conserver (voir __versions_a_garder)."""
+        a_garder = self.__versions_a_garder()
+        if not a_garder:
+            return
+        sources = [self.__registry.snapshot_source(v) for v in a_garder]
+        # publié avant la suppression : l'application ne pointe jamais vers un dossier supprimé
+        self.__repository.definir_snapshot_actif(sources[-1], a_garder[-1])
+        self.__repository.remove_old_snapshots(sources)
+        self.__registry.remove_old_snapshots(a_garder)
+        print(f"=== Nettoyage : snapshots conservés : {a_garder} ===")
 
 
     ##########################
@@ -189,12 +240,13 @@ class TrainingPipeline():
     TACHES = {"classification": (ClassificationModel, CIBLE_CLASSIFICATION),
               "regression": (RegressionModel, CIBLE_REGRESSION)}
 
-    def train(self, snapid:str, processed:dict|None=None)-> dict:
+    def train(self, snapid:str, processed:dict|None=None, version:str|None=None)-> dict:
         """Entraîne, évalue et enregistre un modèle par tâche et par département.
 
         Args:
             snapid: id du snapshot
             processed: données propres déjà chargées, None pour les relire sur le disque
+            version: dossier de models/ où écrire, None pour utiliser snapid
 
         Returns:
             {(tache, departement): métriques sur le jeu de test}
@@ -215,7 +267,8 @@ class TrainingPipeline():
                 print(f"      {tache} : {scores}" + (f" ({modele.meilleurs_params})" if modele.meilleurs_params else ""))
                 # données de performance pour le front (scores, matrice de confusion, importance...)
                 evaluation = modele.tableaux_evaluation(X.loc[test_idx], y.loc[test_idx], y.loc[train_idx])
-                self.__registry.save(tache, departement, snapid, modele, {
+                self.__registry.save(tache, departement, version or snapid, modele, {
+                    "snapshot_source": snapid,
                     "cible": cible,
                     "colonnes": list(X.columns),
                     "meilleurs_params": modele.meilleurs_params,
