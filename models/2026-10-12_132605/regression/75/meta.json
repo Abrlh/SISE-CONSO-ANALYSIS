@@ -4,7 +4,7 @@
   "departement": "75",
   "modele": "RegressionModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-02T16:51:04+00:00",
+  "entraine_le": "2026-11-08T11:28:07+00:00",
   "evaluation": [
     "scores",
     "predit_reel",
@@ -35,11 +35,11 @@
     "isolation_toiture"
   ],
   "meilleurs_params": {},
-  "nb_lignes_train": 75064,
-  "nb_lignes_test": 32171,
+  "nb_lignes_train": 75131,
+  "nb_lignes_test": 32200,
   "metriques_test": {
-    "r2": 0.6913631753839957,
-    "mae": 41.07425137719407,
-    "rmse": 59.94469885814515
+    "r2": 0.691363386319365,
+    "mae": 41.317475872124035,
+    "rmse": 60.309380705401246
   }
 }
