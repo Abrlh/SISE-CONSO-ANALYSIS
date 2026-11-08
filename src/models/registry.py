@@ -110,12 +110,17 @@ class ModelRegistry():
         return sorted(p.name for p in self.__root.iterdir()
                       if all((p / t / d / "meta.json").exists() for t in taches for d in departements))
 
+    def snapshot_source(self, version:str)-> str:
+        """Id du snapshot de données sur lequel une version complète de modèles a été entraînée."""
+        meta_path = next((self.__root / version).glob("*/*/meta.json"))
+        return json.loads(meta_path.read_text()).get("snapshot_source", version)
+
     def remove_old_snapshots(self, a_garder:list[str])-> None:
         """Supprime les anciens snapshots de models/ (voir supprimer_snapshots_anciens)."""
         supprimer_snapshots_anciens(self.__root, a_garder)
 
-    def list_departements(self, tache:str)-> list[str]:
-        """Départements qui ont au moins un modèle complet pour cette tâche."""
+    def list_departements(self, tache:str, snapid:str|None=None)-> list[str]:
+        """Départements qui ont au moins un modèle complet pour cette tâche (dans snapid, ou dans tous les snapshots par défaut)."""
         if not self.__root.exists():
             return []
-        return sorted({p.parent.name for p in self.__root.glob(f"*/{tache}/*/meta.json")})
+        return sorted({p.parent.name for p in self.__root.glob(f"{snapid or '*'}/{tache}/*/meta.json")})

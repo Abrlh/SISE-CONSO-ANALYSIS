@@ -14,6 +14,7 @@ from src.models.regression import RegressionModel
 from src.models.registry import ModelRegistry
 from src.processing.preprocessing import ColonnesManquantesError
 from src.orchestration.service import AppService
+from tests.depot_actif import DepotActif
 
 
 def donnees(n=120):
@@ -106,11 +107,61 @@ def test_load_sans_modele_leve_une_erreur(tmp_path):
         ModelRegistry(root=tmp_path).load("classification", "75")
 
 
+ANCIEN, NOUVEAU = "2026-10-08_100000", "2026-10-12_132605"
+
+
+def test_service_lit_les_modeles_du_snapshot_actif(modele, tmp_path):
+    m, X = modele
+    registre = ModelRegistry(root=tmp_path)
+    registre.save("classification", "59", ANCIEN, m, {"cible": "x", "colonnes": ["a"]})
+    registre.save("classification", "59", NOUVEAU, m, {"cible": "y", "colonnes": ["a"]})   # entraînement en cours
+    registre.save("classification", "75", NOUVEAU, m, {"cible": "y", "colonnes": ["a"]})
+    depot = DepotActif(ANCIEN)
+    service = AppService(repository=depot, registry=registre)
+    assert service.info_modele("classification", "59")["snapshot_id"] == ANCIEN
+    assert (service.predire("classification", "59", X) == m.predict(X)).all()
+    with pytest.raises(FileNotFoundError, match=r"\['59'\]"):              # 75 n'existe que dans le nouveau
+        service.info_modele("classification", "75")
+    formulaire = service.formulaire()
+    assert formulaire["snapshot"] == ANCIEN and list(formulaire["classification"]) == ["59"]
+    assert depot.lus == [ANCIEN]
+
+
+def test_service_garde_ses_modeles_si_le_snapshot_actif_change(modele, tmp_path):
+    m, _ = modele
+    registre = ModelRegistry(root=tmp_path)
+    registre.save("classification", "59", ANCIEN, m, {})
+    registre.save("classification", "59", NOUVEAU, m, {})
+    depot = DepotActif(ANCIEN)
+    service = AppService(repository=depot, registry=registre)
+    depot.modeles = NOUVEAU
+    assert service.info_modele("classification", "59")["snapshot_id"] == ANCIEN
+    assert AppService(repository=depot, registry=registre).info_modele("classification", "59")["snapshot_id"] == NOUVEAU
+
+
+def test_formulaire_lit_les_donnees_du_snapshot_source(modele, tmp_path):
+    m, _ = modele
+    registre = ModelRegistry(root=tmp_path)
+    registre.save("classification", "59", NOUVEAU, m, {"snapshot_source": ANCIEN, "cible": "x", "colonnes": ["a"]})
+    depot = DepotActif(ANCIEN, modeles=NOUVEAU)
+    formulaire = AppService(repository=depot, registry=registre).formulaire()
+    assert depot.lus == [ANCIEN] and formulaire["snapshot"] == ANCIEN
+
+
+def test_service_sans_snapshot_actif_lit_le_plus_recent(modele, tmp_path):
+    m, _ = modele
+    registre = ModelRegistry(root=tmp_path)
+    registre.save("classification", "59", ANCIEN, m, {})
+    registre.save("classification", "59", NOUVEAU, m, {})
+    service = AppService(repository=DepotActif(None), registry=registre)
+    assert service.info_modele("classification", "59")["snapshot_id"] == NOUVEAU
+
+
 def test_service_predire_et_departement_inconnu(modele, tmp_path):
     m, X = modele
     registre = ModelRegistry(root=tmp_path)
     registre.save("classification", "75", "2026-10-12_132605", m, {})
-    service = AppService(repository=object(), registry=registre)
+    service = AppService(repository=DepotActif(None), registry=registre)
     assert (service.predire("classification", "75", X) == m.predict(X)).all()
     with pytest.raises(FileNotFoundError, match=r"\['75'\]"):
         service.predire("classification", "69", X)
@@ -159,7 +210,7 @@ def test_evaluation_enregistree_et_relue_par_le_service(modele, tmp_path):
     tableaux = m.tableaux_evaluation(X, y, y)
     registre.save("classification", "75", "2026-10-12_132605", m, {}, tableaux)
     assert registre.load_meta("classification", "75")["evaluation"] == list(tableaux)
-    service = AppService(repository=object(), registry=registre)
+    service = AppService(repository=DepotActif(None), registry=registre)
     assert service.liste_evaluation("classification", "75") == list(tableaux)
     pd.testing.assert_frame_equal(service.evaluation_modele("classification", "75", "matrice_confusion"),
                                   tableaux["matrice_confusion"])

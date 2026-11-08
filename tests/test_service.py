@@ -16,6 +16,13 @@ class FauxDepot:
     def __init__(self, stats):
         self.stats = stats
         self.lectures = 0            # nombre de lectures "disque"
+        self.actif = None
+
+    def snapshot_actif(self):
+        return self.actif
+
+    def modeles_actifs(self):
+        return self.actif
 
     def list_stats_snapshots(self):
         return sorted(self.stats)
@@ -82,3 +89,22 @@ def test_recharger_stats_prend_un_nouveau_snapshot():
     service.recharger_stats()
     assert service.snapshot_stats() == "2026-10-20_090000"
     assert len(service.get_stat("kpi")) == 4
+
+
+def test_snapshot_actif_prioritaire_sur_le_plus_recent():
+    d = depot()
+    d.actif = "2026-10-08_100000"
+    service = AppService(repository=d)
+    assert service.snapshot_stats() == "2026-10-08_100000"
+    assert len(service.get_stat("kpi")) == 1
+
+
+def test_recharger_stats_suit_le_snapshot_actif():
+    d = depot()
+    d.actif = "2026-10-08_100000"
+    service = AppService(repository=d)
+    assert service.snapshot_stats() == "2026-10-08_100000"
+    d.actif = "2026-10-12_132605"
+    assert service.snapshot_stats() == "2026-10-08_100000"      # inchangé tant qu'on ne recharge pas
+    service.recharger_stats()
+    assert service.snapshot_stats() == "2026-10-12_132605"

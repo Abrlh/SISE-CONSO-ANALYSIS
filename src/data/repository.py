@@ -23,6 +23,9 @@ class DataRepository():
         self.__processed_root = self.__root.parent / "processed"
         self.__processed_storage:Storage = LocalStorage(root=self.__processed_root)
 
+        # Snapshot affiché par l'application : data/snapshot_actif.json
+        self.__actif_path = self.__root.parent / "snapshot_actif.json"
+
         self.__departements = self.__get_departements()
         # Statistiques pré-calculées : data/stats/<snapshot_id>/<nom>.parquet + meta.json
         self.__stats_root = self.__root.parent / "stats"
@@ -84,6 +87,28 @@ class DataRepository():
     def departements(self)-> list[str]:
         """Codes des départements traités par le projet."""
         return list(self.__departements)
+
+
+    def snapshot_actif(self)-> str|None:
+        """Id du snapshot affiché par l'application, None si aucun n'a encore été publié."""
+        if not self.__actif_path.exists():
+            return None
+        return json.loads(self.__actif_path.read_text())["snapshot_id"]
+
+
+    def modeles_actifs(self)-> str|None:
+        """Id de la version de modèles affichée par l'application, None si aucune n'a encore été publiée."""
+        if not self.__actif_path.exists():
+            return None
+        return json.loads(self.__actif_path.read_text())["modeles_id"]
+
+
+    def definir_snapshot_actif(self, snapshot_id:str, modeles_id:str)-> None:
+        """Publie un snapshot de données et une version de modèles.
+        Écriture atomique : l'application lit l'ancienne publication ou la nouvelle, jamais un fichier partiel."""
+        temporaire = self.__actif_path.with_suffix(".tmp")
+        temporaire.write_text(json.dumps({"snapshot_id": snapshot_id, "modeles_id": modeles_id}, indent=2))
+        temporaire.replace(self.__actif_path)
 
 
     def remove_old_snapshots(self, a_garder:list[str])-> None:
