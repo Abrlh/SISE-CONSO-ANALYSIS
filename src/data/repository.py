@@ -205,6 +205,11 @@ class DataRepository():
         departements = json.loads(meta_path.read_text())["departements"]
         return {d: self.__processed_storage.load(path=f"{snapshot_id}/{d}.parquet") for d in departements}
 
+    def alleger_processed(self, snapshot_id:str, colonnes:dict[str, list[str]], ecrire:bool=True)-> dict[str, tuple[int, int]]:
+        """Réduit les données prétraitées d'un snapshot aux colonnes demandées. """
+        return {d: self.__processed_storage.alleger(f"{snapshot_id}/{d}.parquet", cols, ecrire=ecrire)
+                for d, cols in colonnes.items()}
+
     
     def save_stats(self, snapshot_id:str, stats:dict[str, pd.DataFrame])-> None:
         """Enregistre les statistiques pré-calculées d'un snapshot.

@@ -10,7 +10,7 @@ COPY requirements-docker.txt .
 RUN pip install --no-cache-dir -r requirements-docker.txt
 
 COPY . .
-RUN ALLEGER_DOCKER=1 python docker/alleger_processed.py --ecrire
+RUN ALLEGER_DOCKER=1 python -m src.orchestration.alleger --ecrire
 
 EXPOSE 8501
 CMD exec streamlit run app/main.py \
