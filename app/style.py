@@ -1068,6 +1068,37 @@ def habiller_contexte():
     st.html(f"<style>{CSS_CONTEXTE}{regles}</style>")
 
 
+
+# Fond de chaque tuile de la page Statistiques, de gauche à droite (mêmes tons que Contexte, plus un rose)
+TUILES_STATISTIQUES = ["#C4E3B3", "#E0F2A0", "#FCE893", "#FBCFA0", "#F8BBA6"]
+
+
+def habiller_chiffres_statistiques():
+    """Style des 5 chiffres clés de la page Statistiques
+
+    Les chiffres sont dans un conteneur nommé « chiffres_stats » (voir statistiques.py)."""
+    base = """
+.st-key-chiffres_stats [data-testid="stMetric"] {
+    border-radius: 24px;
+    padding: 18px 20px;
+    border: 1px solid rgba(23, 48, 27, 0.06);
+    box-shadow: 0 10px 20px -18px rgba(31, 107, 38, 0.5);
+}
+.st-key-chiffres_stats [data-testid="stMetricValue"] {
+    color: #1F5A2A;
+    font-weight: 700;
+}
+.st-key-chiffres_stats [data-testid="stMetricLabel"] {
+    color: #2F4D33;
+}
+"""
+    regles = ""
+    for rang, fond in enumerate(TUILES_STATISTIQUES, start=1):
+        colonne = f'.st-key-chiffres_stats [data-testid="stColumn"]:nth-child({rang})'
+        regles += f'{colonne} [data-testid="stMetric"] {{ background: {fond}; }}\n'
+    st.html(f"<style>{base}{regles}</style>")
+
+
 # Petit repère de carte (SVG) placé devant chaque département
 PICTO_LIEU = (
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
