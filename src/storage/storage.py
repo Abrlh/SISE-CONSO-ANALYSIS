@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 
 class Storage(ABC):
@@ -17,6 +18,8 @@ class Storage(ABC):
     def load(self, path)->Any:
         pass
 
+    def alleger(self, path, colonnes, ecrire=True) -> tuple[int, int]:
+        raise NotImplementedError
 
 
 class LocalStorage(Storage):
@@ -31,6 +34,24 @@ class LocalStorage(Storage):
 
     def load(self, path: str) -> pd.DataFrame:
         return pd.read_parquet(self.root / path)
+
+    def alleger(self, path: str, colonnes: list[str], ecrire: bool = True) -> tuple[int, int]:
+        """Réduit un fichier parquet aux colonnes demandées, en gardant leur ordre d'origine
+        Returns:
+            (nombre de colonnes avant, nombre de colonnes après)
+        """
+        full_path = self.root / path
+        presentes = pq.read_schema(full_path).names
+        absentes = sorted(set(colonnes) - set(presentes))
+        if absentes:
+            raise KeyError(f"colonnes absentes de {path} : {absentes}")
+        a_garder = [c for c in presentes if c in set(colonnes)]
+        if ecrire:
+            df = pd.read_parquet(full_path, columns=a_garder)
+            temporaire = full_path.with_suffix(".tmp")
+            df.to_parquet(temporaire)
+            temporaire.replace(full_path)
+        return len(presentes), len(a_garder)
 
 
 def supprimer_snapshots_anciens(root: Path, a_garder: list[str]) -> None:
