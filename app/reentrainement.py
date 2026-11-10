@@ -42,9 +42,11 @@ def afficher_dernier_resultat(run, version):
         st.error(f"Le dernier apprentissage n'a pas abouti. [Voir les logs]({run['url']})")
     elif version >= run["cree_le"]:
         st.success("Les modèles en service sont à jour.")
-    else:
-        st.info("Nouveaux modèles publiés : ils seront utilisés au prochain redéploiement. "
-                "En local : `git pull` puis relancer l'application.")
+
+
+def date_fr(identifiant):
+    """« 2026-11-08_165211 » devient « 08/11/2026 »."""
+    return "/".join(reversed(identifiant[:10].split("-")))
 
 
 def lancer(workflow, run):
@@ -58,8 +60,13 @@ def lancer(workflow, run):
     st.rerun()
 
 
-def afficher_bloc_reentrainement(version):
-    """Formulaire protégé par mot de passe, ou suivi si un apprentissage est en cours."""
+def afficher_bloc_reentrainement(meta):
+    """Date des modèles en service (meta : meta.json d'un modèle), puis formulaire protégé par mot de passe,
+    ou suivi si un apprentissage est en cours."""
+    version = meta["snapshot_id"]
+    donnees = meta.get("snapshot_source", version)
+    st.write(f"Modèles en service entraînés le **{date_fr(version)}** "
+             f"sur les données téléchargées le **{date_fr(donnees)}**.")
     workflow = WorkflowGitHub.depuis_environnement()
     if workflow is None:
         st.caption("Apprentissage non configuré : GITHUB_DEPOT, GITHUB_TOKEN et MOT_DE_PASSE_ADMIN sont requis.")

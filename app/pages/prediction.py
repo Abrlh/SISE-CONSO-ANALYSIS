@@ -200,4 +200,4 @@ with droite:
         with st.container(key="bloc_modeles"):
             st.subheader(":material/model_training: Modèles")
             st.write("Réentraîne les modèles sur les données actuelles, sans nouveau téléchargement.")
-            afficher_bloc_reentrainement(service.info_modele(taches[0], departement)["snapshot_id"])
+            afficher_bloc_reentrainement(service.info_modele(taches[0], departement))
