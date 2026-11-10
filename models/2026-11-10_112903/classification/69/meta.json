@@ -1,10 +1,10 @@
 {
-  "snapshot_id": "2026-11-08_165211",
+  "snapshot_id": "2026-11-10_112903",
   "tache": "classification",
   "departement": "69",
   "modele": "ClassificationModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T17:02:02+00:00",
+  "entraine_le": "2026-11-10T11:40:11+00:00",
   "evaluation": [
     "scores",
     "matrice_confusion",

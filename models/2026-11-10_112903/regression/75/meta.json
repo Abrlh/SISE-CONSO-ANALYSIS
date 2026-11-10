@@ -1,10 +1,10 @@
 {
-  "snapshot_id": "2026-11-08_165211",
+  "snapshot_id": "2026-11-10_112903",
   "tache": "regression",
   "departement": "75",
   "modele": "RegressionModel",
   "sklearn_version": "1.9.1",
-  "entraine_le": "2026-11-08T16:54:18+00:00",
+  "entraine_le": "2026-11-10T11:31:29+00:00",
   "evaluation": [
     "scores",
     "predit_reel",
