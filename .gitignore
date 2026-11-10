@@ -7,3 +7,6 @@ __pycache__/
 # données brutes : seul meta.json de chaque snapshot est suivi
 data/raw/*/*/
 
+# secrets locaux Docker (jeton GitHub, mot de passe) : ne jamais committer
+.env
+
