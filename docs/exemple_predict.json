@@ -1,0 +1,25 @@
+{
+  "departement": "59",
+  "caracteristiques": {
+    "surface_habitable_logement": 68.1,
+    "annee_construction": 1983.0,
+    "type_batiment": "appartement",
+    "zone_climatique": "H1a",
+    "classe_altitude": "inférieur à 400m",
+    "nombre_niveau_logement": 1.0,
+    "numero_etage_appartement": 0.0,
+    "type_energie_n1": "Gaz naturel",
+    "type_energie_n2": "Électricité",
+    "type_generateur_n1_installation_n1": "Chaudière gaz à condensation après 2015",
+    "type_emetteur_installation_chauffage_n1": "Radiateur bitube avec robinet thermostatique sur réseau individuel eau chaude basse ou moyenne température(inf 65°C)",
+    "type_installation_ecs": "individuel",
+    "type_generateur_n1_ecs_n1": "Ballon électrique à accumulation vertical Catégorie B ou 2 étoiles",
+    "type_ventilation": "Ventilation par ouverture des fenêtres",
+    "qualite_isolation_enveloppe": "insuffisante",
+    "qualite_isolation_murs": "insuffisante",
+    "qualite_isolation_plancher_haut_comble_perdu": "très bonne",
+    "qualite_isolation_plancher_bas": "très bonne",
+    "qualite_isolation_menuiseries": "moyenne",
+    "isolation_toiture": 1.0
+  }
+}
