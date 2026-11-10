@@ -678,6 +678,7 @@ CSS_PREDICTION = """
 .st-key-etapes [role="tab"] p > :first-child * {
     font-size: 20px !important;
 }
+
 .st-key-etapes [role="tab"][aria-selected="true"] {
     border-bottom-color: #FC9935;
 }
@@ -713,17 +714,23 @@ CSS_PREDICTION = """
     padding: 0;
     gap: 0;
 }
+
 [class*="st-key-icone_etape_"] * {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
     line-height: 1;
+    text-align: center;
     font-size: 26px !important;
-    color: #17301B;
+}
+/* le symbole lui-même : une grille centre son contenu quel que soit l'affichage choisi par Streamlit */
+[class*="st-key-icone_etape_"] [data-testid="stIconMaterial"] {
+    display: grid !important;
+    place-items: center;
 }
 .etape-texte {
     display: flex;
@@ -741,6 +748,7 @@ CSS_PREDICTION = """
     font-size: 13.5px;
     color: #4D6150;
 }
+
 
 /* Champs du formulaire : fond vert très clair, sans cadre */
 .st-key-etapes [data-baseweb="input"],
@@ -873,6 +881,41 @@ CSS_PREDICTION = """
 }
 """
 
+# Écran étroit : les étapes passent à la ligne, 3 par rangée, au lieu d'être serrées sur une seule ligne.
+# On teste la largeur du cadre du formulaire (container query), pas celle de la fenêtre :
+# la colonne du formulaire est étroite bien avant le téléphone.
+CSS_PREDICTION_ETROIT = """
+.st-key-etapes {
+    container-type: inline-size;
+}
+/* cadre un peu étroit : les six étapes restent sur une ligne, avec des libellés plus petits */
+@container (max-width: 640px) {
+    .st-key-etapes [role="tab"] p {
+        font-size: 12px;
+    }
+    .st-key-etapes [role="tab"] p::after {
+        font-size: 10.5px;
+    }
+}
+/* cadre très étroit (téléphone) : les étapes passent à la ligne, 3 par rangée */
+@container (max-width: 400px) {
+    .st-key-etapes [role="tablist"] {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        row-gap: 16px;
+    }
+    /* le trait dégradé relie les étapes sur une seule ligne : il n'a plus de sens sur plusieurs */
+    .st-key-etapes [role="tablist"]::before {
+        display: none;
+    }
+    .st-key-etapes [role="tab"] {
+        flex: 0 0 33.333%;
+    }
+    .st-key-etapes [role="tab"] p {
+        overflow-wrap: anywhere;
+    }
+}
+"""
 
 def habiller_prediction(nombres_champs=()):
     """Applique le style de la page Prédiction.
@@ -889,7 +932,7 @@ def habiller_prediction(nombres_champs=()):
         # le trait dégradé va du centre du premier onglet au centre du dernier
         marge = 50 / len(nombres_champs)
         compteurs += f'.st-key-etapes [role="tablist"]::before {{ left: {marge:.2f}%; right: {marge:.2f}%; }}\n'
-    st.html(f"<style>{CSS_FILTRES}{CSS_PREDICTION}{compteurs}</style>")
+    st.html(f"<style>{CSS_FILTRES}{CSS_PREDICTION}{compteurs}{CSS_PREDICTION_ETROIT}</style>")
 
 
 def echelle_dpe(etiquette=None):
@@ -1052,7 +1095,7 @@ CSS_CONTEXTE = """
 
 /* Curseur de surface : en rouge (on fait tourner la teinte du vert vers le rouge) */
 .st-key-surface [data-testid="stSlider"] {
-    filter: hue-rotate(240deg) saturate(2) brightness(0.88);
+    filter: hue-rotate(260deg) saturate(4) brightness(0.82);
 }
 """
 
