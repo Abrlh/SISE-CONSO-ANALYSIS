@@ -8,9 +8,9 @@ from affichage import (
 )
 
 COULEURS = dict(zip(ETIQUETTES, COULEURS_ETIQUETTES))
-VERT = "#0F766E"
-ORANGE = "#F07F3C"
-COULEURS_ORIGINES = {NOMS_ORIGINES["dpe_existants"]: VERT, NOMS_ORIGINES["dpe_neufs"]: ORANGE}
+VERT = "#428B49"
+ORANGE = "#FC9935"
+COULEURS_ORIGINES = {NOMS_ORIGINES["dpe_existants"]: ORANGE, NOMS_ORIGINES["dpe_neufs"]: VERT}
 
 
 def _finir(fig, legende=True):
@@ -18,6 +18,31 @@ def _finir(fig, legende=True):
     fig.update_layout(margin=dict(l=10, r=10, t=50, b=10), height=360, legend_title_text="", showlegend=legende)
     return fig
 
+def _habiller(fig):
+    """Style commun des graphiques : fond transparent, quadrillage clair, titre aligné à gauche
+    (couleurs de l'interface)."""
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        title=dict(x=0, font=dict(size=17, color="#17301B")),
+    )
+    fig.update_xaxes(showline=True, linecolor="#E3EFCF")
+    fig.update_yaxes(gridcolor="#E3EFCF", zeroline=False)
+    return fig
+
+
+def _habiller_origines(fig, bas=60, y_legende=-0.12):
+    """Style des graphiques « logements existants / neufs » : le style commun, avec la légende
+    horizontale sous le graphique.
+
+    bas : marge sous le graphique (px) ; y_legende : position de la légende, à descendre
+    quand l'axe horizontal a un titre.
+    """
+    fig = _habiller(fig)
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=50, b=bas),
+        legend=dict(orientation="h", yanchor="top", y=y_legende, xanchor="center", x=0.5),
+    )
+    return fig
 
 def barres_etiquettes(tableau, y, titre, libelle_y):
     """Une barre par étiquette (couleurs DPE)."""
@@ -36,15 +61,16 @@ def anneau(tableau, titre):
     )
     return _finir(fig)
 
-
 def barres_modalites(tableau, titre):
     """Consommation médiane pour chaque modalité d'une caractéristique."""
+    # le titre du graphique dit déjà « consommation médiane » : l'axe ne garde que l'unité
     fig = px.bar(
         tableau, x="modalite", y="mediane", title=titre, hover_data=["effectif", "q1", "q3", "part_f_g"],
-        labels={"modalite": "", "mediane": "Consommation médiane (kWh/m²/an)"}, color_discrete_sequence=[VERT],
+        labels={"modalite": "", "mediane": "kWh/m²/an"}, color_discrete_sequence=[VERT],
     )
-    return _finir(fig, legende=False)
-
+    fig.update_traces(marker_cornerradius=8)
+    fig.update_layout(bargap=0.35)
+    return _habiller(_finir(fig, legende=False))
 
 def barres_empilees(tableau, titre):
     """Répartition des étiquettes dans chaque modalité."""
@@ -52,7 +78,8 @@ def barres_empilees(tableau, titre):
         tableau, x="modalite", y="pourcentage", color="etiquette", color_discrete_map=COULEURS,
         category_orders={"etiquette": ETIQUETTES}, title=titre, labels={"modalite": "", "pourcentage": "% des logements"},
     )
-    return _finir(fig)
+    fig.update_layout(bargap=0.35)
+    return _habiller(_finir(fig))
 
 
 def ges_selon_dpe(tableau, titre):
@@ -80,11 +107,14 @@ def ges_selon_dpe(tableau, titre):
     return fig
 
 
-def courbe(tableau, y, titre, libelle_y):
+def courbe(tableau, y, titre, libelle_y, couleur=VERT):
     """Évolution d'une valeur selon l'année de réception du DPE."""
     fig = px.line(tableau, x="annee", y=y, markers=True, title=titre, labels={"annee": "Année", y: libelle_y})
     fig.update_xaxes(type="category")
-    return _finir(fig, legende=False)
+    # trait plus épais, points ronds cerclés de blanc ; la courbe reste droite entre les points (pas de lissage)
+    fig.update_traces(line=dict(width=3, color=couleur),
+                      marker=dict(size=9, color=couleur, line=dict(width=2, color="#FFFFFF")))
+    return _habiller(_finir(fig, legende=False))
 
 
 def barres_annuelles(tableau, titre):
@@ -94,8 +124,10 @@ def barres_annuelles(tableau, titre):
         color_discrete_sequence=[VERT],
     )
     fig.update_xaxes(type="category")
-    return _finir(fig, legende=False)
-
+    fig.update_traces(marker_cornerradius=8)
+    fig.update_layout(bargap=0.35)
+    return _habiller(_finir(fig, legende=False))
+    
 
 def matrice_correlation(tableau, titre):
     """Matrice de corrélation entre les variables numériques : la valeur est écrite dans chaque case."""
@@ -104,10 +136,13 @@ def matrice_correlation(tableau, titre):
     grille = grille.reindex(index=ordre, columns=ordre)
     fig = px.imshow(
         grille, text_auto=".2f", aspect="auto",
-        color_continuous_scale=[[0, "#F4F9E8"], [0.5, "#9ED69A"], [1, "#1F6B26"]], zmin=0, zmax=1,
+        color_continuous_scale=[[0, "#FC9935"], [0.5, "#F4F9E8"], [1, "#1F6B26"]], zmin=-1, zmax=1,
         labels={"x": "", "y": "", "color": "Corrélation"},
     )
-    return _finir(fig, legende=False)
+    # échelle de couleur plus discrète : barre plus fine, titre à la taille du reste
+    fig.update_coloraxes(colorbar=dict(thickness=14, len=0.8,title=dict(text="Corrélation", font=dict(size=13))))
+    return _habiller(_finir(fig, legende=False))
+
 
 
 def camembert_ges(tableau, titre):
@@ -130,7 +165,8 @@ def histogramme_origines(tableau, titre):
     # Chaque barre fait 20 de large (tranches de 20 kWh/m²/an) et commence au début de la tranche
     fig.update_traces(width=20, offset=0)
     fig.update_layout(bargap=0)
-    return _finir(fig)
+    # l'axe horizontal a un titre : la marge et la légende descendent d'un cran
+    return _habiller_origines(_finir(fig), bas=100, y_legende=-0.32)
 
 
 def nuage_surface_conso(tableau, titre):
@@ -156,4 +192,10 @@ def barres_departements(tableau, y, titre, libelle_y, format_texte=".0f"):
         tableau, x="departement", y=y, color="origine", barmode="group", text_auto=format_texte,
         color_discrete_map=COULEURS_ORIGINES, title=titre, labels={"departement": "", y: libelle_y},
     )
-    return _finir(fig)
+    # valeurs au-dessus des barres, coins arrondis, barres un peu plus espacées
+    fig.update_traces(textposition="outside", cliponaxis=False,
+                      textfont=dict(color="#17301B", size=13), marker_cornerradius=8)
+    fig.update_layout(bargap=0.35, bargroupgap=0.08)
+    return _habiller_origines(_finir(fig))
+
+

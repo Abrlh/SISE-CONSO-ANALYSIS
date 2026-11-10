@@ -138,7 +138,7 @@ with gauche:
             for rang_onglet, (onglet, (titre, icone, colonnes)) in enumerate(zip(onglets, groupes)):
                 with onglet:
                     # en-tête de l'étape : pastille d'icône, titre et description
-                    colonne_icone, colonne_texte = st.columns([1, 11], vertical_alignment="center")
+                    colonne_icone, colonne_texte = st.columns([1, 6], vertical_alignment="center")
                     with colonne_icone:
                         with st.container(key=f"icone_etape_{rang_onglet}"):
                             st.markdown(f":material/{icone}:")

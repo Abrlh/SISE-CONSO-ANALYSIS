@@ -63,7 +63,7 @@ st.download_button(
 # ---- Chiffres clés
 habiller_chiffres_statistiques()
 with st.container(key="chiffres_stats"):
-    colonnes = st.columns([1, 1.4, 1.1, 1.2, 1.1])
+    colonnes = st.columns(5)
     colonnes[0].metric(":material/home: Logements", fmt_nombre(ligne["nb_logements"]))
     colonnes[1].metric(
         ":material/bolt: Consommation médiane", f"{ligne['conso_mediane']:.0f}",
@@ -94,10 +94,12 @@ with onglets[0]:
     st.subheader(":material/compare_arrows: Comparer les départements")
     gauche, droite = st.columns(2)
     gauche.plotly_chart(graphiques.barres_departements(
-        kpi, "conso_mediane", "Consommation médiane par département", "Consommation médiane (kWh/m²/an)"))
+        kpi, "conso_mediane", "Consommation médiane par département", "Consommation médiane (kWh/m²/an)"),)
     droite.plotly_chart(graphiques.barres_departements(
-        kpi, "part_f_g", "Part de passoires (F-G) par département", "% de logements F ou G", ".1f"))
+        kpi, "part_f_g", "Part de passoires (F-G) par département", "% de logements F ou G", ".1f"),)
     st.caption("Ces graphiques comparent tous les départements : ils ne dépendent pas des filtres.")
+
+    
 
 # ---- Consommation
 with onglets[1]:
@@ -105,7 +107,7 @@ with onglets[1]:
     distribution = distribution[distribution["origine"].astype(str) != "Tous"]
     if not vide(distribution):
         st.plotly_chart(graphiques.histogramme_origines(
-            distribution, "Distribution de la consommation : logements existants et neufs"))
+            distribution, "Distribution de la consommation : logements existants et neufs"),)
         st.caption("Ce graphique compare toujours les logements existants et neufs : il ne dépend que du département.")
 
     points = choisir(lire_ou_arreter("echantillon_points"), filtre_departement, filtre_origine)
@@ -194,4 +196,4 @@ with onglets[4]:
         gauche.plotly_chart(graphiques.barres_annuelles(temps, "Logements par année de réception"))
         droite.plotly_chart(graphiques.courbe(
             temps, "conso_mediane", "Consommation médiane par année", "Consommation médiane (kWh/m²/an)"))
-        st.plotly_chart(graphiques.courbe(temps, "part_f_g", "Part de passoires (F-G) par année", "% de F et G"))
+        st.plotly_chart(graphiques.courbe(temps, "part_f_g", "Part de passoires (F-G) par année", "% de F et G", couleur=graphiques.ORANGE))
