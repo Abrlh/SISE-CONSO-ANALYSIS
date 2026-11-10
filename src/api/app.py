@@ -5,7 +5,7 @@ from typing import Any
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-
+from fastapi.responses import RedirectResponse
 from ..data.repository import DataRepository
 from ..models.registry import ModelRegistry
 from ..orchestration.service import AppService
@@ -34,6 +34,10 @@ class DemandePrediction(BaseModel):
         ..., description="Une valeur par colonne attendue (voir GET /modeles/{tache}/{departement})"
     )
 
+@app.get("/", include_in_schema=False)
+def accueil() -> RedirectResponse:
+    """Redirige la racine vers la documentation interactive."""
+    return RedirectResponse(url="/docs")
 
 @app.get("/sante")
 def sante() -> dict:

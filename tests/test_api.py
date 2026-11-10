@@ -32,3 +32,8 @@ def test_predict_colonnes_manquantes():
     reponse = client.post("/predict", json={"departement": departement, "caracteristiques": {}})
     assert reponse.status_code == 422
     assert reponse.json()["detail"]["colonnes"]
+
+def test_racine_redirige_vers_docs():
+    reponse = client.get("/", follow_redirects=False)
+    assert reponse.status_code in (302, 307)
+    assert reponse.headers["location"] == "/docs"
