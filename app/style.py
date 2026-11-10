@@ -25,7 +25,7 @@ CSS_MENU = """
 .block-container,
 .stMainBlockContainer,
 [data-testid="stMainBlockContainer"] {
-    padding-top: 0.5rem !important;
+    padding-top: 3rem !important;
     padding-left: 2.5rem !important;
     padding-right: 2.5rem !important;
 }
