@@ -1,11 +1,12 @@
-"""Allège les données pour l'image Docker (Render gratuit : 512 Mo).
+"""Allège les données pour l'image Docker (Render gratuit : 512 Mo) et pour le dépôt Git
+(workflow de réentraînement, avant le commit).
 
 Garde uniquement le snapshot de données et la version de modèles publiés dans
 data/snapshot_actif.json, et réduit data/processed aux colonnes utilisées par les modèles.
 
 Exemples :
     python -m src.orchestration.alleger            # simulation, rien n'est modifié
-    ALLEGER_DOCKER=1 python -m src.orchestration.alleger --ecrire   # construction de l'image
+    ALLEGER_ECRITURE=1 python -m src.orchestration.alleger --ecrire   # image Docker, workflow GitHub
 """
 import argparse
 import os
@@ -57,11 +58,12 @@ class AllegementImage():
 
         Args:
             ecrire: False (par défaut) pour simuler. True modifie les fichiers et n'est
-                accepté que pendant la construction de l'image (variable ALLEGER_DOCKER=1).
+                accepté que pendant la construction de l'image et dans le workflow GitHub
+                (variable ALLEGER_ECRITURE=1).
         """
-        if ecrire and os.environ.get("ALLEGER_DOCKER") != "1":
+        if ecrire and os.environ.get("ALLEGER_ECRITURE") != "1":
             raise PermissionError("--ecrire modifierait les fichiers du dépôt : "
-                                  "réservé à la construction de l'image (ALLEGER_DOCKER=1).")
+                                  "réservé à la construction de l'image et au workflow GitHub (ALLEGER_ECRITURE=1).")
         donnees, modeles = self.snapshots_publies()
         print(f"Snapshot de données publié : {donnees}")
         print(f"Version de modèles publiée : {modeles}")

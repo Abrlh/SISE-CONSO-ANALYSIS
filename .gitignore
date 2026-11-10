@@ -4,3 +4,6 @@ __pycache__/
 
 .streamlit/secrets.toml
 
+# données brutes : seul meta.json de chaque snapshot est suivi
+data/raw/*/*/
+

@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
-import pyarrow.parquet as pq
 from .api_client import AdemeApiClient
 from ..storage.storage import LocalStorage, Storage, supprimer_snapshots_anciens
 
@@ -54,6 +53,8 @@ class DataRepository():
             data/raw/<snapshot_id>/<departement>/<nom_dataset>.parquet
             data/raw/<snapshot_id>/meta.json
 
+        Les fichiers parquet ne sont pas suivis par Git (.gitignore) : meta.json garde
+        les noms des colonnes brutes pour l'audit du snapshot suivant.
         meta.json est écrit en dernier : s'il est absent, le téléchargement
         a été interrompu et le snapshot est ignoré par list_snapshots().
 
@@ -67,6 +68,7 @@ class DataRepository():
         # Un seul id pour tout le téléchargement, généré avant la boucle
         snapshot_id = datetime.now(timezone.utc).strftime(self.SNAPSHOT_ID_FORMAT)
         contenu = {}  # {departement: [noms des datasets]}
+        colonnes = set()  # noms des colonnes brutes, tous départements et datasets
         print("== Téléchargement des données ADEME ==")
         for departement in self.__departements:
             tps_debut = datetime.now() #TODO: delete ça
@@ -74,11 +76,12 @@ class DataRepository():
             datasets = self.__client.get_full_datasets(code_departement=departement,size=size,nb_page=nb_page)
             for name, df in datasets.items():
                 self.__storage.save(df, path=f"{snapshot_id}/{departement}/{name}.parquet")
+                colonnes.update(df.columns)
             contenu[departement] = list(datasets.keys())
             tps_fin = datetime.now() #TODO: delete ça 
             print(f"      -> {len(datasets)} datasets téléchargés en {tps_fin - tps_debut}")
 
-        meta = {"snapshot_id": snapshot_id, "departements": contenu}
+        meta = {"snapshot_id": snapshot_id, "departements": contenu, "colonnes": sorted(colonnes)}
         snapshot_dir = self.__root / snapshot_id
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         (snapshot_dir / "meta.json").write_text(json.dumps(meta, indent=2))
@@ -149,12 +152,18 @@ class DataRepository():
 
         Returns:
             {departement: [{dataset_name: DataFrame}]}, les datasets étant séparés par département
+
+        Raises:
+            FileNotFoundError: fichiers parquet absents (ils ne sont pas dans le dépôt Git)
         """
         meta = json.loads((self.__root / snapshot_id / "meta.json").read_text())
         frames = {}  # {nom_dataset: [DataFrame de chaque département]}
         for departement, names in meta["departements"].items():
             frames[departement] = {}
             for name in names:
+                if not (self.__root / snapshot_id / departement / f"{name}.parquet").exists():
+                    raise FileNotFoundError(f"Données brutes du snapshot {snapshot_id} absentes : elles ne sont pas dans le dépôt Git. "
+                                            "Lancez : python -m src.orchestration.train --refresh")
                 df = self.__storage.load(path=f"{snapshot_id}/{departement}/{name}.parquet")
                 frames[departement][name] = df
         return frames
@@ -237,10 +246,8 @@ class DataRepository():
 
     def colonnes(self, snapshot_id:str)-> set[str]:
         """Noms des colonnes d'un snapshot brut (tous départements et datasets).
-        Seul l'en-tête des fichiers parquet est lu : les données ne sont pas chargées."""
-        meta = json.loads((self.__root / snapshot_id / "meta.json").read_text())
-        return {c for departement, names in meta["departements"].items() for name in names
-                for c in pq.read_schema(self.__root / snapshot_id / departement / f"{name}.parquet").names}
+        Lus dans meta.json : les fichiers parquet ne sont pas dans le dépôt Git."""
+        return set(json.loads((self.__root / snapshot_id / "meta.json").read_text())["colonnes"])
 
 
     def snapshot_precedent(self, snapshot_id:str)-> str|None:

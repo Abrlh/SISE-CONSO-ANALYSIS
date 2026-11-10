@@ -26,6 +26,8 @@ jobs:
         run: |
           SNAPSHOT=$(python -c "import json; print(json.load(open('data/snapshot_actif.json'))['snapshot_id'])")
           python -m src.orchestration.train --train --snapshot "$SNAPSHOT"
+      - name: Alléger les données avant le commit
+        run: ALLEGER_ECRITURE=1 python -m src.orchestration.alleger --ecrire
       - name: Publier les modèles
         run: |
           git config user.name "github-actions[bot]"

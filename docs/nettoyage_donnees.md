@@ -52,15 +52,20 @@ df = pd.read_parquet("data/processed/2026-10-12_132605/59.parquet")
 Les valeurs sont lisibles (« Gaz naturel », « avant 1948 », « maison »), ce qui permet des graphiques, tableaux et filtres parlants dans Streamlit.
 Pour avoir les trois départements ensemble : `pd.concat([...], ignore_index=True)`. Les départements n'ont pas exactement les mêmes colonnes (156 à 159) : au `concat`, une colonne absente d'un département est remplie de cases vides.
 
-### Les obtenir : les données propres ne sont pas dans Git
-Les fichiers de `data/processed` pèsent plus de 130 Mo en tout (de 38 à 51 Mo par département). Les mettre dans Git alourdirait le dépôt à chaque changement de règle, car Git garde toutes les versions. On **les régénère donc sur sa machine**, à partir des données brutes qui, elles, sont dans le dépôt :
+### Les obtenir : Git ne contient qu'une version réduite
+Les fichiers complets de `data/processed` pèsent plus de 130 Mo en tout (de 38 à 51 Mo par département), et les données brutes 140 Mo. Pour ne pas alourdir le dépôt à chaque rafraîchissement, Git ne garde que ce qui sert à l'application et au réentraînement :
 
-Attention : des anciennes versions de ces fichiers sont encore suivies par Git (reste d’un ancien commit). Après un clone ou un pull, relancez toujours la commande ci-dessous, qui les écrase.
+- `data/raw/<snapshot>/` : seulement `meta.json` (départements, jeux et noms des colonnes brutes, relus par le contrôle des colonnes du snapshot suivant). Les fichiers parquet sont ignorés (`.gitignore`).
+- `data/processed/<snapshot>/` : les fichiers réduits aux colonnes utilisées par les modèles (variables du formulaire et cibles, environ 4 Mo). Le workflow de réentraînement fait cette réduction avant son commit (`src/orchestration/alleger.py`).
+
+Pour avoir **toutes les colonnes** sur sa machine (analyse, notebooks, `--preprocess`, `--stats`), il faut les données brutes :
+
 ```
-python -m src.orchestration.train --snapshot 2026-10-12_132605 --preprocess
+python -m src.orchestration.train --snapshot 2026-10-12_132605 --preprocess   # si data/raw/<snapshot>/ contient encore les parquet
+python -m src.orchestration.train --refresh                                   # sinon : nouveau téléchargement, pipeline complète
 ```
 
-Après un `pull`, cette commande recrée `data/processed/2026-10-12_132605/`. Le résultat est identique pour tout le monde, puisque le code et les données brutes sont les mêmes.
+Attention : un `pull` après un réentraînement remplace les fichiers complets de `data/processed` par la version réduite.
 
 ### Plusieurs snapshots
 Chaque snapshot a son propre dossier (`data/processed/<date>/`). Un nouveau snapshot n'efface pas l'ancien. Relancer le nettoyage sur le **même** snapshot réécrit seulement les fichiers de ce dossier. Pour être sûr du snapshot utilisé, toujours donner l'option `--snapshot <id>` ; sans elle, c'est le plus récent.
