@@ -11,7 +11,7 @@ import graphiques
 from affichage import (
     NOMS_COLONNES_APERCU, NOMS_COLONNES_STATS, NOMS_VARIABLES_COURTS, choisir, filtres_perimetre, fmt_nombre,
 )
-from style import habiller_filtres
+from style import habiller_chiffres_statistiques, habiller_filtres
 
 st.title(":material/bar_chart: Statistiques")
 
@@ -61,16 +61,21 @@ st.download_button(
 
 
 # ---- Chiffres clés
-colonnes = st.columns([1, 2, 1, 1, 1])
-colonnes[0].metric(":material/home: Logements", fmt_nombre(ligne["nb_logements"]))
-colonnes[1].metric(
-    ":material/bolt: Consommation médiane", f"{ligne['conso_mediane']:.0f} kWh/m²/an",
-    help="Médiane de la consommation d'énergie de 5 usages par m² (kWh/m²/an).",
-)
-colonnes[2].metric(":material/square_foot: Surface médiane", f"{ligne['surface_mediane']:.0f} m²")
-colonnes[3].metric(":material/warning: Passoires (F-G)", f"{ligne['part_f_g']:.1f} %",
-                   help="Part des logements d'étiquette F ou G.")
-colonnes[4].metric(":material/eco: Étiquettes A-B", f"{ligne['part_a_b']:.1f} %")
+habiller_chiffres_statistiques()
+with st.container(key="chiffres_stats"):
+    colonnes = st.columns([1, 1.4, 1.1, 1.2, 1.1])
+    colonnes[0].metric(":material/home: Logements", fmt_nombre(ligne["nb_logements"]))
+    colonnes[1].metric(
+        ":material/bolt: Consommation médiane", f"{ligne['conso_mediane']:.0f}",
+        help="Médiane de la consommation d'énergie de 5 usages par m² (kWh/m²/an).",
+    )
+    colonnes[2].metric(
+        ":material/square_foot: Surface médiane", f"{ligne['surface_mediane']:.0f}",
+        help="Surface habitable médiane des logements, en m².",
+    )
+    colonnes[3].metric(":material/warning: Passoires (F-G)", f"{ligne['part_f_g']:.1f} %",
+                       help="Part des logements d'étiquette F ou G.")
+    colonnes[4].metric(":material/eco: Étiquettes A-B", f"{ligne['part_a_b']:.1f} %")
 
 onglets = st.tabs([
     ":material/pie_chart: Vue d'ensemble", ":material/bolt: Consommation", ":material/tune: Facteurs",
