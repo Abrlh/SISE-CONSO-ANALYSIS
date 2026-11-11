@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 import pandas as pd
@@ -26,6 +27,24 @@ class AdemeApiClient:
 
     def get_all_api_urls(self) -> dict:
         return self.__API_URLS
+
+    def derniere_publication(self)-> str:
+        """Date de la dernière publication de l'ADEME (champ dataUpdatedAt), la plus récente des jeux de données.
+
+        Seules les métadonnées sont lues, aucune ligne n'est téléchargée.
+
+        Returns:
+            date UTC au format des id de snapshot, ex. "2026-11-04_221607" : elle se compare directement à un id
+
+        Raises:
+            requests.HTTPError: réponse HTTP en erreur
+        """
+        dates = []
+        for url in self.__API_URLS.values():
+            rep = requests.get(url.removesuffix("/lines"), timeout=self.TIMEOUT)
+            rep.raise_for_status()
+            dates.append(datetime.fromisoformat(rep.json()["dataUpdatedAt"]).strftime("%Y-%m-%d_%H%M%S"))
+        return max(dates)
 
     def get_full_datasets(self,code_departement:int,size:int=10000,nb_page:int=5)-> dict:
         """Récupère l'ensemble des datasets disponibles pour un département donné.

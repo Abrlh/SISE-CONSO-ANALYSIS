@@ -30,9 +30,17 @@ class WorkflowGitHub():
             return None
         return cls(depot, token, os.environ.get("GITHUB_BRANCHE", "master"))
 
-    def lancer(self)-> None:
-        """Demande à GitHub de lancer le workflow sur la branche configurée."""
-        requests.post(f"{self.__url}/dispatches", headers=self.__entetes, json={"ref": self.__branche},
+    def lancer(self, rafraichir:bool=False)-> None:
+        """Demande à GitHub de lancer le workflow sur la branche configurée.
+
+        Args:
+            rafraichir: True pour télécharger un nouveau snapshot et relancer toute la pipeline,
+                False pour réentraîner sur le snapshot actif
+        """
+        corps = {"ref": self.__branche}
+        if rafraichir:
+            corps["inputs"] = {"rafraichir": "true"}
+        requests.post(f"{self.__url}/dispatches", headers=self.__entetes, json=corps,
                       timeout=self.TIMEOUT).raise_for_status()
 
     def dernier_run(self)-> dict|None:

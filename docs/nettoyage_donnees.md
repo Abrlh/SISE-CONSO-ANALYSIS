@@ -183,7 +183,7 @@ Une première proposition de découpe et d'encodage existe dans la branche `feat
 | 5. Documenter | éditer ce document si une décision change | |
 
 ### Étape 1 : obtenir le snapshot
-`python -m src.orchestration.refresh` interroge l'API de l'ADEME et ne télécharge que si l'ADEME a publié une version plus récente que le dernier snapshot (le téléchargement se fait page par page). On peut aussi l'obtenir avec `python -m src.orchestration.train --refresh`.
+`python -m src.orchestration.refresh` interroge l'API de l'ADEME et télécharge toujours un nouveau snapshot, sans vérifier si l'ADEME a publié une version plus récente (le téléchargement se fait page par page). Cette vérification n'est faite que par le bouton de la page Contexte. On peut aussi l'obtenir avec `python -m src.orchestration.train --refresh`.
 À confirmer : `train.py` appelle `refresh(size=10000)` en dur ; est-ce une taille de page ou un plafond du nombre de lignes ? Le plafond de 100 000 logements existants par département du snapshot actuel doit être documenté ici.
 Attention : cette commande lance un vrai téléchargement (`--help` ne l'en empêche pas).
 
@@ -223,7 +223,7 @@ Mettre à jour ce document si une décision a changé, puis enregistrer (commit)
 | Colonne qui contient la réponse | **non filtrée** ; signalée par l'audit seulement |
 | Seuils adaptés aux nouvelles données | **non** : à vérifier avec le bilan (étape 4) |
 | Doublons entre ancien et nouveau snapshot | **non** : la déduplication ne travaille que sur un snapshot |
-| Rafraîchissement lancé depuis l'application | télécharge un snapshot brut ; le **nettoyage et l'audit doivent être appelés ensuite** (`DataPreprocessor().process(...)`) : à brancher dans `AppService` |
+| Rafraîchissement lancé depuis l'application | **oui** : le bouton de la page Contexte lance toute la pipeline (`--refresh`) sur GitHub Actions ; l'audit est commité dans `docs/audit_<id>.csv` |
 
 ---
 

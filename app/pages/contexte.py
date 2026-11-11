@@ -11,6 +11,7 @@ from affichage import (
     COULEURS_ETIQUETTES, ETIQUETTES, NOMS_VARIABLES_NUMERIQUES, choisir, filtres_perimetre, fmt_nombre,
     legende_etiquettes, liste_valeurs, nom_departement,
 )
+from reentrainement import afficher_bloc_rafraichissement
 from style import habiller_contexte, ligne_snapshot
 
 habiller_contexte()
@@ -117,17 +118,15 @@ else:
         "Couleur = étiquette DPE."
     )
 
-# ---- Rafraîchissement des données (branché plus tard sur le back end)
+# ---- Rafraîchissement des données (lance toute la pipeline sur GitHub Actions, voir app/reentrainement.py)
 with st.container(key="ruban_rafraichir"):
     st.subheader(":material/refresh: Rafraîchir les données")
 with st.expander("Télécharger un nouveau snapshot depuis l'API ADEME"):
     st.write(
         "Cette action télécharge à nouveau les DPE de chaque département depuis l'API de l'ADEME, "
-        "puis relance le nettoyage et le calcul des statistiques."
+        "puis relance le nettoyage, le calcul des statistiques et l'apprentissage des modèles."
     )
-    st.checkbox("Je confirme le téléchargement")
-    st.button("Rafraîchir les données", disabled=True)
-    st.caption("Fonction bientôt disponible.")
+    afficher_bloc_rafraichissement(snapshot)
 
 # ---- Aperçu
 with st.container(key="ruban_apercu"):

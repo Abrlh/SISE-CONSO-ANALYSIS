@@ -2,6 +2,11 @@ name: Réentraînement
 
 on:
   workflow_dispatch:
+    inputs:
+      rafraichir:
+        description: "Télécharger un nouveau snapshot et relancer toute la pipeline"
+        type: boolean
+        default: false
 
 concurrency:
   group: reentrainement
@@ -22,17 +27,23 @@ jobs:
           cache: pip
       - name: Installer les dépendances
         run: pip install -r requirements.txt
-      - name: Réentraîner sur le snapshot actif
+      - name: Réentraîner sur le snapshot actif, ou rafraîchir toute la pipeline
+        env:
+          RAFRAICHIR: ${{ inputs.rafraichir }}
         run: |
-          SNAPSHOT=$(python -c "import json; print(json.load(open('data/snapshot_actif.json'))['snapshot_id'])")
-          python -m src.orchestration.train --train --snapshot "$SNAPSHOT"
+          if [ "$RAFRAICHIR" = "true" ]; then
+            python -m src.orchestration.train --refresh
+          else
+            SNAPSHOT=$(python -c "import json; print(json.load(open('data/snapshot_actif.json'))['snapshot_id'])")
+            python -m src.orchestration.train --train --snapshot "$SNAPSHOT"
+          fi
       - name: Alléger les données avant le commit
         run: ALLEGER_ECRITURE=1 python -m src.orchestration.alleger --ecrire
       - name: Publier les modèles
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A models data
+          git add -A models data docs
           git commit -m "Réentraînement automatique des modèles"
           git pull --rebase origin "$GITHUB_REF_NAME"
           git push origin "HEAD:$GITHUB_REF_NAME"

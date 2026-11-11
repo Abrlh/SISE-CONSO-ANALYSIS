@@ -188,8 +188,10 @@ Vérification :`https://<nom-du-service>.onrender.com/docs`.
 
 ## 7. Après un réentraînement
 
-1. La page « Apprentissage » (mot de passe) déclenche le workflow `retrain.yml` sur GitHub Actions.
-2. Le workflow rafraîchit les données si besoin, réentraîne les modèles, committe les résultats et
+1. Le workflow `retrain.yml` se déclenche sur GitHub Actions depuis deux boutons protégés par mot de passe :
+   « Relancer l'apprentissage » (page Prédiction, sans téléchargement) et « Rafraîchir les données »
+   (page Contexte, nouveau téléchargement puis toute la pipeline, entrée `rafraichir` du workflow).
+2. Le workflow rafraîchit les données si demandé, réentraîne les modèles, committe les résultats et
    met à jour `data/snapshot_actif.json` (version des données et des modèles affichées).
 3. Il conserve les deux derniers snapshots et versions de modèles.
 4. **Redéployer** l'application et l'API sur Render (automatique ou manuel, voir la section 5).

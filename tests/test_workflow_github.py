@@ -38,6 +38,11 @@ def test_lancer_vise_la_branche_avec_le_token(http):
     http.post.return_value.raise_for_status.assert_called_once()
 
 
+def test_lancer_avec_rafraichissement_transmet_l_entree_du_workflow(http):
+    WorkflowGitHub("moi/depot", "jeton").lancer(rafraichir=True)
+    assert http.post.call_args.kwargs["json"] == {"ref": "master", "inputs": {"rafraichir": "true"}}
+
+
 def test_dernier_run_format_compatible_avec_les_versions(http):
     http.get.return_value.json.return_value = {"workflow_runs": [{
         "id": 7, "status": "in_progress", "conclusion": None, "html_url": "lien",
