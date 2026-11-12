@@ -1,0 +1,26 @@
+{
+  "snapshot_id": "2026-11-12_115042",
+  "stats": [
+    "kpi_globaux",
+    "repartition_etiquettes",
+    "distribution_conso",
+    "stats_conso",
+    "stats_numeriques",
+    "conso_par_modalite",
+    "etiquette_par_modalite",
+    "conso_par_etiquette",
+    "cout_ges_par_etiquette",
+    "etiquette_ges_vs_dpe",
+    "correlations",
+    "evolution_annuelle",
+    "couverture_temporelle",
+    "communes",
+    "echantillon_points",
+    "logements",
+    "qualite_donnees",
+    "apercu_donnees",
+    "bilan_nettoyage",
+    "colonnes_retirees"
+  ],
+  "calcule_le": "2026-11-12T12:59:12+00:00"
+}
