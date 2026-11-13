@@ -1,5 +1,7 @@
 # SISE Conso Analysis
 
+![Aperçu de l'application](docs/images/app.png)
+
 Projet de Master 2 SISE : à partir des données DPE de l'ADEME ([logements existants](https://data.ademe.fr/datasets/dpe03existant) et [logements neufs](https://data.ademe.fr/datasets/dpe02neuf)), nous avons construit une application qui prédit l'**étiquette DPE** (A à G) et la **consommation d'énergie** (kWh/m²/an) d'un logement.
 
 Trois départements sont couverts : Paris (75), Nord (59) et Rhône (69). Chacun a deux modèles : une classification (étiquette) et une régression (consommation).
