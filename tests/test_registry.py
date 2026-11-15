@@ -48,6 +48,13 @@ def test_preparer_xy_ne_garde_que_les_variables_du_formulaire():
     assert y.name == "etiquette_dpe"
 
 
+def test_preparer_xy_ajoute_une_variable_optionnelle_si_elle_existe():
+    # ex. réseau de chaleur : présente pour le 59 seulement
+    df = donnees().assign(reseau_chaleur_moins_de_100="oui")
+    X, y = preparer_xy(df, "etiquette_dpe")
+    assert list(X.columns) == VARIABLES_FORMULAIRE + ["reseau_chaleur_moins_de_100"]
+
+
 def test_preparer_xy_bloque_si_une_variable_manque():
     # ex. l'API a renommé type_energie_n1 : l'entraînement doit s'arrêter, pas continuer sans
     df = donnees().rename(columns={"type_energie_n1": "type_energie_principale_n1"})

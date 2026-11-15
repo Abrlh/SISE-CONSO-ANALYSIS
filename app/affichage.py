@@ -116,6 +116,7 @@ NOMS_CHAMPS = {
     "numero_etage_appartement": "Étage de l'appartement",
     "zone_climatique": "Zone climatique",
     "classe_altitude": "Classe d'altitude",
+    "reseau_chaleur_moins_de_100": "Réseau de chaleur à moins de 100 m",
     "type_energie_n1": "Énergie principale de chauffage",
     "type_energie_n2": "Énergie secondaire de chauffage",
     "type_generateur_n1_installation_n1": "Générateur de chauffage",
@@ -135,7 +136,7 @@ NOMS_CHAMPS = {
 GROUPES_CHAMPS = [
     ("Logement", "apartment", ["surface_habitable_logement", "annee_construction", "type_batiment",
                                "nombre_niveau_logement", "numero_etage_appartement"]),
-    ("Localisation", "location_on", ["zone_climatique", "classe_altitude"]),
+    ("Localisation", "location_on", ["zone_climatique", "classe_altitude", "reseau_chaleur_moins_de_100"]),
     ("Chauffage", "local_fire_department", ["type_energie_n1", "type_energie_n2",
                                             "type_generateur_n1_installation_n1",
                                             "type_emetteur_installation_chauffage_n1"]),

@@ -1,7 +1,9 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import numpy as np
 import pandas as pd
+from sklearn.neighbors import BallTree
 from .api_client import AdemeApiClient
 from ..storage.storage import LocalStorage, Storage, supprimer_snapshots_anciens
 
@@ -10,6 +12,10 @@ class DataRepository():
     # Format de l'id d'un snapshot : date et heure UTC du téléchargement, ex. "2026-10-08_143000".
     # Largeur fixe : l'ordre alphabétique des id est aussi l'ordre chronologique.
     SNAPSHOT_ID_FORMAT = "%Y-%m-%d_%H%M%S"
+    # Réseau de chaleur : colonne ajoutée au téléchargement, pour les départements du fichier seulement
+    COLONNE_RESEAU_CHALEUR = "reseau_chaleur_moins_de_100"
+    DISTANCE_RESEAU_CHALEUR = 100  # mètres
+    RAYON_TERRE = 6_371_000  # mètres
 
     def __init__(self, root:str|Path|None=None):
         #Load data-raw
@@ -29,8 +35,6 @@ class DataRepository():
         # Statistiques pré-calculées : data/stats/<snapshot_id>/<nom>.parquet + meta.json
         self.__stats_root = self.__root.parent / "stats"
         self.__stats_storage:Storage = LocalStorage(root=self.__stats_root)
-
-        pass
 
 
     def __get_departements(self)-> list:
@@ -82,11 +86,16 @@ class DataRepository():
         snapshot_id = datetime.now(timezone.utc).strftime(self.SNAPSHOT_ID_FORMAT)
         contenu = {}  # {departement: [noms des datasets]}
         colonnes = set()  # noms des colonnes brutes, tous départements et datasets
+        # pour le réseau de chaleur, on enregistre les dépt concernés :
+        reseau_chaleur = self.load_reseau_chaleur()
+        list_dpt_reseau_chaleur = set(reseau_chaleur["departement"])
         print("== Téléchargement des données ADEME ==")
         for departement in self.__departements:
             tps_debut = datetime.now() #TODO: delete ça
             print(f"    - Département {departement} ===")
             datasets = self.__client.get_full_datasets(code_departement=departement,size=size,nb_page=nb_page)
+            if departement in list_dpt_reseau_chaleur:
+                datasets = self.__add_reseau_chaleur(datasets, reseau_chaleur[reseau_chaleur["departement"] == departement])
             for name, df in datasets.items():
                 self.__storage.save(df, path=f"{snapshot_id}/{departement}/{name}.parquet")
                 colonnes.update(df.columns)
@@ -314,3 +323,32 @@ class DataRepository():
         if not self.__stats_root.exists():
             return []
         return sorted(p.name for p in self.__stats_root.iterdir() if (p / "meta.json").exists())
+
+    def load_reseau_chaleur(self)->pd.DataFrame:
+        """Points des réseaux de chaleur : colonnes departement (texte, ex. "59"), longitude, latitude."""
+        return pd.read_csv(self.__root / "reseau_chaleur_longitude_latitude.csv.gz", dtype={"departement": str})
+
+    def __add_reseau_chaleur(self, datasets:dict[str, pd.DataFrame], reseau:pd.DataFrame)->dict[str, pd.DataFrame]:
+        """
+        rajoute la colonne réseau de chaleur {oui,non} à chaque dataset du département concerné :
+        "oui" si le logement (_geopoint) est à moins de DISTANCE_RESEAU_CHALEUR mètres d'un point du réseau.
+        Sans coordonnées lisibles, la valeur reste manquante.
+
+        Args:
+            datasets: {nom_dataset: DataFrame} d'un département
+            reseau: points du réseau de chaleur de ce département (colonnes latitude, longitude)
+        """
+        # haversine : distance à vol d'oiseau, coordonnées (latitude, longitude) en radians
+        arbre = BallTree(np.radians(reseau[["latitude", "longitude"]].to_numpy()), metric="haversine")
+        for df in datasets.values():
+            if "_geopoint" not in df.columns:
+                continue
+            # _geopoint : "latitude,longitude"
+            coords = df["_geopoint"].astype("string").str.split(",", expand=True).reindex(columns=[0, 1])
+            coords = coords.apply(pd.to_numeric, errors="coerce").dropna()
+            df[self.COLONNE_RESEAU_CHALEUR] = None
+            if coords.empty:
+                continue
+            distances = arbre.query(np.radians(coords.to_numpy(dtype=float)))[0][:, 0] * self.RAYON_TERRE
+            df.loc[coords.index, self.COLONNE_RESEAU_CHALEUR] = np.where(distances < self.DISTANCE_RESEAU_CHALEUR, "oui", "non")
+        return datasets

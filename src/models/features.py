@@ -24,13 +24,17 @@ ISOLATION_PERCUE = [
     "qualite_isolation_menuiseries", "isolation_toiture",
 ]
 VARIABLES_FORMULAIRE = BASE_FORMULAIRE + ISOLATION_PERCUE
+# variables propres à certains départements : utilisées seulement si la colonne existe dans les données
+VARIABLES_OPTIONNELLES = ["reseau_chaleur_moins_de_100"]
 
 
 def preparer_xy(df:pd.DataFrame, cible:str)-> tuple[pd.DataFrame, pd.Series]:
-    """Sépare les variables d'entrée X (variables du formulaire) et la cible y.
+    """Sépare les variables d'entrée X (variables du formulaire, plus les variables
+    optionnelles présentes dans df) et la cible y.
 
     Raises:
         ColonnesManquantesError: une variable du formulaire ou la cible manque (comme au nettoyage)
     """
     verifier_colonnes(df, VARIABLES_FORMULAIRE + [cible], "Variables du formulaire ou cible")
-    return df[VARIABLES_FORMULAIRE], df[cible]
+    optionnelles = [v for v in VARIABLES_OPTIONNELLES if v in df.columns]
+    return df[VARIABLES_FORMULAIRE + optionnelles], df[cible]
