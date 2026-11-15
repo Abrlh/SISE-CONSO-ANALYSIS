@@ -46,6 +46,19 @@ class AdemeApiClient:
             dates.append(datetime.fromisoformat(rep.json()["dataUpdatedAt"]).strftime("%Y-%m-%d_%H%M%S"))
         return max(dates)
 
+    def nb_lignes(self, code_departement:str)-> int:
+        """Nombre de DPE de logements existants disponibles pour un département.
+
+        Seul le total est lu (size=0), aucune ligne n'est téléchargée.
+
+        Raises:
+            requests.HTTPError: réponse HTTP en erreur
+        """
+        params = {"size": 0, "qs": f"code_departement_ban:{code_departement}"}
+        rep = requests.get(self.__API_URLS["dpe_existants"], params=params, timeout=self.TIMEOUT)
+        rep.raise_for_status()
+        return rep.json()["total"]
+
     def get_full_datasets(self,code_departement:int,size:int=10000,nb_page:int=5)-> dict:
         """Récupère l'ensemble des datasets disponibles pour un département donné.
 

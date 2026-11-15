@@ -46,6 +46,19 @@ class DataRepository():
         return d
 
 
+    def classer_departements(self)-> None:
+        """Recalcule le classement des départements par nombre de DPE existants disponibles.
+
+        Lit data/raw/codes_departements.csv, interroge l'API pour chaque département
+        et réécrit data/raw/codes_departements_nb_lignes.csv, trié par ordre décroissant.
+        Le nouveau classement est pris en compte à la prochaine création d'un DataRepository.
+        """
+        df = pd.read_csv(self.__root / "codes_departements.csv", dtype="str")
+        df["nb_lignes"] = [float(self.__client.nb_lignes(code)) for code in df["code_departement"]]
+        df = df.sort_values(by="nb_lignes", ascending=False)
+        df.to_csv(self.__root / "codes_departements_nb_lignes.csv", index=False)
+
+
     def refresh(self,size:int=10000,nb_page:int=10)-> str:
         """Télécharge les données de chaque département dans un nouveau snapshot.
 
