@@ -82,9 +82,9 @@ def test_regression_entraine_predit_et_evalue():
     assert m.meilleurs_params == {}                     # pas de recherche d'hyperparamètres
 
 
-def test_train_choisit_k(modele):
+def test_classification_sans_recherche_d_hyperparametres(modele):
     m, _ = modele
-    assert m.meilleurs_params["selection__k"] in ClassificationModel.GRILLE_K
+    assert m.meilleurs_params == {}
 
 
 def test_modele_recharge_predit_pareil(modele, tmp_path):

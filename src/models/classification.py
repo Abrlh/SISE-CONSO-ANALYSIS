@@ -3,46 +3,36 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.feature_selection import SelectKBest, VarianceThreshold
-from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
-from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OrdinalEncoder
 
 class ClassificationModel(BaseModel):
+    """Prédit l'étiquette DPE (A à G) par gradient boosting.
 
-    GRILLE_K = [20, 50, "all"]
-
-
-    """Prédit l'étiquette DPE (A à G), même pipeline que le notebook 03_ML."""
+    Même prétraitement que la régression : un entier par modalité, valeurs manquantes laissées au modèle.
+    """
     def __init__(self):
         super().__init__()
         preprocess = ColumnTransformer([
-
-            ("quanti", Pipeline(
-                [("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())
-                 ]),
-             make_column_selector(dtype_include="number")),
-            ("quali", Pipeline([
-                ("imputer", SimpleImputer(strategy="most_frequent")),
-                ("encoder", OneHotEncoder(handle_unknown="ignore"))
-                ]),
+            # qualitatives en premier : train() indique leurs positions au modèle
+            # max_categories : le gradient boosting refuse plus de 255 modalités par variable
+            ("quali", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=np.nan,
+                                     encoded_missing_value=np.nan, max_categories=255),
              make_column_selector(dtype_exclude="number")),
-        ], sparse_threshold=0)  # attention: HistGradientBoosting n'accepte pas la matrice creuse du OneHotEncoder
+            ("quanti", "passthrough", make_column_selector(dtype_include="number")),
+        ])
         self.model = Pipeline([
             ("preprocess", preprocess),
-            ("variance", VarianceThreshold()),
-            ("selection", SelectKBest()), 
-            ("model", HistGradientBoostingClassifier(max_leaf_nodes=63, random_state=42)),
+            ("model", HistGradientBoostingClassifier(max_leaf_nodes=63, max_iter=1000, early_stopping=True,
+                                                     random_state=42)),
         ])
 
 
     def train(self, X, y):
-        search = GridSearchCV(self.model, {"selection__k": self.GRILLE_K}, cv=2, scoring="f1_macro")
-        search.fit(X, y)
-        self.model = search.best_estimator_
-        self.meilleurs_params = search.best_params_
+        nb_quali = X.select_dtypes(exclude="number").shape[1]
+        self.model.set_params(model__categorical_features=list(range(nb_quali)))
+        self.model.fit(X, y)
 
     def predict(self, X)-> np.ndarray:
         return self.model.predict(X)

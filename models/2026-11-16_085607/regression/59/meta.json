@@ -1,0 +1,47 @@
+{
+  "snapshot_id": "2026-11-16_085607",
+  "tache": "regression",
+  "departement": "59",
+  "modele": "RegressionModel",
+  "sklearn_version": "1.9.1",
+  "entraine_le": "2026-11-16T08:57:20+00:00",
+  "evaluation": [
+    "scores",
+    "predit_reel",
+    "erreur_par_tranche",
+    "importance_variables"
+  ],
+  "snapshot_source": "2026-11-15_141128",
+  "cible": "conso_5_usages_par_m2_ef",
+  "colonnes": [
+    "surface_habitable_logement",
+    "annee_construction",
+    "type_batiment",
+    "zone_climatique",
+    "classe_altitude",
+    "nombre_niveau_logement",
+    "numero_etage_appartement",
+    "type_energie_n1",
+    "type_energie_n2",
+    "type_generateur_n1_installation_n1",
+    "type_emetteur_installation_chauffage_n1",
+    "type_installation_ecs",
+    "type_generateur_n1_ecs_n1",
+    "type_ventilation",
+    "qualite_isolation_enveloppe",
+    "qualite_isolation_murs",
+    "qualite_isolation_plancher_haut_comble_perdu",
+    "qualite_isolation_plancher_bas",
+    "qualite_isolation_menuiseries",
+    "isolation_toiture",
+    "reseau_chaleur_moins_de_100"
+  ],
+  "meilleurs_params": {},
+  "nb_lignes_train": 97540,
+  "nb_lignes_test": 41804,
+  "metriques_test": {
+    "r2": 0.8206490118176099,
+    "mae": 25.43134659373723,
+    "rmse": 41.65329368718679
+  }
+}

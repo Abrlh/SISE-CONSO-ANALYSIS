@@ -1,0 +1,103 @@
+{
+  "snapshot_id": "2026-11-16_085607",
+  "tache": "classification",
+  "departement": "69",
+  "modele": "ClassificationModel",
+  "sklearn_version": "1.9.1",
+  "entraine_le": "2026-11-16T08:58:00+00:00",
+  "evaluation": [
+    "scores",
+    "matrice_confusion",
+    "par_etiquette",
+    "importance_variables"
+  ],
+  "snapshot_source": "2026-11-15_141128",
+  "cible": "etiquette_dpe",
+  "colonnes": [
+    "surface_habitable_logement",
+    "annee_construction",
+    "type_batiment",
+    "zone_climatique",
+    "classe_altitude",
+    "nombre_niveau_logement",
+    "numero_etage_appartement",
+    "type_energie_n1",
+    "type_energie_n2",
+    "type_generateur_n1_installation_n1",
+    "type_emetteur_installation_chauffage_n1",
+    "type_installation_ecs",
+    "type_generateur_n1_ecs_n1",
+    "type_ventilation",
+    "qualite_isolation_enveloppe",
+    "qualite_isolation_murs",
+    "qualite_isolation_plancher_haut_comble_perdu",
+    "qualite_isolation_plancher_bas",
+    "qualite_isolation_menuiseries",
+    "isolation_toiture"
+  ],
+  "meilleurs_params": {},
+  "nb_lignes_train": 100196,
+  "nb_lignes_test": 42942,
+  "metriques_test": {
+    "f1_macro": 0.6333742290392718,
+    "accuracy": 0.7334078524521448,
+    "a_une_classe_pres": 0.9661170881654324,
+    "rapport": {
+      "A": {
+        "precision": 0.9092844974446337,
+        "recall": 0.8633238980994743,
+        "f1-score": 0.885708359261564,
+        "support": 2473.0
+      },
+      "B": {
+        "precision": 0.8012566137566137,
+        "recall": 0.6578875916372522,
+        "f1-score": 0.7225287013567914,
+        "support": 3683.0
+      },
+      "C": {
+        "precision": 0.8429505040782208,
+        "recall": 0.8869875792952716,
+        "f1-score": 0.8644085407034132,
+        "support": 18759.0
+      },
+      "D": {
+        "precision": 0.6207051224544721,
+        "recall": 0.6919691969196919,
+        "f1-score": 0.6544027239194173,
+        "support": 9999.0
+      },
+      "E": {
+        "precision": 0.5257889009793254,
+        "recall": 0.468944099378882,
+        "f1-score": 0.4957422796757977,
+        "support": 5152.0
+      },
+      "F": {
+        "precision": 0.41694915254237286,
+        "recall": 0.265658747300216,
+        "f1-score": 0.3245382585751979,
+        "support": 1852.0
+      },
+      "G": {
+        "precision": 0.517051705170517,
+        "recall": 0.458984375,
+        "f1-score": 0.48629073978272114,
+        "support": 1024.0
+      },
+      "accuracy": 0.7334078524521448,
+      "macro avg": {
+        "precision": 0.6619980709180222,
+        "recall": 0.6133936410901126,
+        "f1-score": 0.6333742290392718,
+        "support": 42942.0
+      },
+      "weighted avg": {
+        "precision": 0.7272493803390706,
+        "recall": 0.7334078524521448,
+        "f1-score": 0.7280358024401513,
+        "support": 42942.0
+      }
+    }
+  }
+}
