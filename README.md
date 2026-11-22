@@ -132,5 +132,4 @@ Les tests couvrent le nettoyage, les statistiques, le stockage, les modèles, l'
 - [Rapport d'étude](docs/rapport.md)
 - [Architecture](docs/architecture_simple.md) et [diagramme de classes](docs/diagramme_classes.md)
 - [Nettoyage des données](docs/nettoyage_donnees.md) et [analyse des données](docs/analyses_des_données.md)
-- [Procédure de ré-entraînement](docs/procedure_reentrainement.md)
 - [Déploiement (Docker et Render)](docs/deploiement.md)
