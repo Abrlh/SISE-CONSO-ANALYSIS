@@ -8,7 +8,7 @@ from deps import get_service
 from tableaux import lire_ou_arreter
 
 from affichage import (
-    COULEURS_ETIQUETTES, ETIQUETTES, NOMS_VARIABLES_NUMERIQUES, choisir, filtres_perimetre, fmt_nombre,
+    COULEURS_ETIQUETTES, ETIQUETTES, NOMS_COLONNES_APERCU, NOMS_VARIABLES_NUMERIQUES, choisir, filtres_perimetre, fmt_nombre,
     legende_etiquettes, liste_valeurs, nom_departement,
 )
 from reentrainement import afficher_bloc_rafraichissement
@@ -71,14 +71,15 @@ resume = choisir(lire_ou_arreter("stats_numeriques"), "Tous", "Tous")
 if not resume.empty:
     with st.expander("Résumé statistique des variables numériques", icon=":material/functions:"):
         st.caption(
-            "Consommation en énergie primaire. Les 5 usages comptabilisés : chauffage, eau chaude, refroidissement, "
+            "Consommation en énergie finale. Les 5 usages comptabilisés : chauffage, eau chaude, refroidissement, "
             "éclairage et auxiliaires (ventilateurs, pompes)."
         )
         tableau = resume.drop(columns=["departement", "origine"], errors="ignore").copy()
-        # la colonne des valeurs manquantes n'est plus affichée
-        tableau = tableau.loc[:, ~tableau.columns.str.contains("manquant", case=False)]
+        
         # On remplace le nom de la base par un nom lisible (affichage seulement)
         tableau["variable"] = tableau["variable"].map(lambda code: NOMS_VARIABLES_NUMERIQUES.get(code, code))
+        colonnes_affichees = ["variable", "effectif", "moyenne", "ecart_type", "minimum", "mediane", "maximum"]
+        tableau = tableau[[c for c in colonnes_affichees if c in tableau.columns]]
         st.dataframe(
             tableau, hide_index=True,
             column_config={"variable": st.column_config.TextColumn("Variable", width="large")},
@@ -136,7 +137,7 @@ with st.container(key="ruban_apercu"):
 if selection.empty:
     st.info("Aucun logement à afficher avec ces filtres.")
 else:
-    apercu_lignes = selection.drop(columns=["couleur"], errors="ignore")
+    apercu_lignes = selection.drop(columns=["couleur"], errors="ignore").rename(columns=NOMS_COLONNES_APERCU)
     st.dataframe(apercu_lignes.sample(min(20, len(apercu_lignes)), random_state=0), hide_index=True)
 
 with st.expander("Limites des données", icon=":material/warning:"):
